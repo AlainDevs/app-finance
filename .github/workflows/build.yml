@@ -16,9 +16,25 @@ on:
         default: true
 
 jobs:
+  validate-acyclic-dependencies:
+    name: Validate _classes Graph is Acyclic
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+      - run: flutter pub get
+      - run: dart pub global activate lakos
+      - name: Enforce no cycles in _classes graph
+        run: $HOME/.pub-cache/bin/lakos --no-cycles-allowed lib/_classes
+
   release:
     name: Create Release Page
     runs-on: ubuntu-latest
+    needs:
+      - validate-acyclic-dependencies
     outputs:
       version: ${{ steps.meta.outputs.version }}
       upload_url: ${{ steps.create_release.outputs.upload_url }}

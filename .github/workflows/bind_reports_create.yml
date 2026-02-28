@@ -2,7 +2,7 @@ name: Generate Reports
 
 on:
   pull_request:
-    branches: 
+    branches:
       - main
 
 jobs:
@@ -19,15 +19,27 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: sudo apt-get install -y graphviz
+      - run: dart pub global activate lakos
 
       - name: Check dependencies
         run: |
           dart run grinder generate-class-graph --diff --from=${{ github.event.pull_request.base.sha }} --to=${{ github.event.pull_request.head.sha }}
           dart run grinder create-class-graph-from-dot --file=coverage/dependencies.dot
 
+      - name: Validate _classes Graph is Acyclic
+        run: |
+          mkdir -p coverage
+          $HOME/.pub-cache/bin/lakos \
+            --no-cycles-allowed \
+            --format=json \
+            --output=coverage/lakos_classes.json \
+            lib/_classes
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: dependencies.svg
-          path: coverage/dependencies.svg
+          path: |
+            coverage/dependencies.svg
+            coverage/lakos_classes.json
           if-no-files-found: error
