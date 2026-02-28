@@ -37,15 +37,29 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: dart run grinder sort-translations
 
+      - name: Install Lakos
+        if: matrix.os == 'ubuntu-latest'
+        run: dart pub global activate lakos
+
+      - name: Validate _classes Graph is Acyclic
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          mkdir -p coverage
+          $HOME/.pub-cache/bin/lakos \
+            --no-cycles-allowed \
+            --format=json \
+            --output=coverage/lakos_classes.json \
+            lib/_classes
+
       # Consider passing '--fatal-infos' for slightly stricter analysis.
       #- name: Analyze Project Source
       #  run: flutter analyze
 
       - name: Run All Tests
-        run: | 
+        run: |
           dart run grinder test --coverage > test_execution.log
           dart run test_cov_console --file="./coverage/lcov.info" --total > coverage/test_total.log
-        
+
       - name: Generate Golden Images
         if: ${{ failure() }}
         run: flutter test --update-goldens test/widget
