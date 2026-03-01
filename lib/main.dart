@@ -4,6 +4,7 @@
 import 'dart:async';
 
 import 'package:app_finance/_classes/controller/fallback_localization_delegate.dart';
+import 'package:app_finance/_classes/controller/encryption_handler.dart';
 import 'package:app_finance/_classes/herald/app_design.dart';
 import 'package:app_finance/_classes/herald/app_locale.dart';
 import 'package:app_finance/_classes/herald/app_palette.dart';
@@ -70,7 +71,8 @@ void main() async {
   runZonedGuarded<Future<void>>(() async {
     WidgetsFlutterBinding.ensureInitialized();
     if (platform != null) {
-      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+      await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform);
       FirebaseAnalytics.instance.logAppOpen();
       PlatformDispatcher.instance.onError = (error, stack) {
         FirebaseAnalytics.instance.logEvent(
@@ -82,13 +84,16 @@ void main() async {
       if (kIsWeb) {
         FlutterError.onError = (details) {
           FlutterError.presentError(details);
-          FirebaseAnalytics.instance.logEvent(name: 'flutter-error', parameters: {'error': details.toString()});
+          FirebaseAnalytics.instance.logEvent(
+              name: 'flutter-error', parameters: {'error': details.toString()});
         };
       } else {
-        FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+        FlutterError.onError =
+            FirebaseCrashlytics.instance.recordFlutterFatalError;
       }
     }
     AppPreferences.pref = await SharedPreferences.getInstance();
+    await EncryptionHandler.initialize();
     CurrencyDefaults.cache = AppPreferences.pref;
     final appSync = AppSync();
     runApp(
@@ -131,12 +136,14 @@ void main() async {
   }, (error, stack) {
     if (platform != null) {
       if (kIsWeb) {
-        FirebaseAnalytics.instance.logEvent(name: 'flutter-error', parameters: {'error': error.toString()});
+        FirebaseAnalytics.instance.logEvent(
+            name: 'flutter-error', parameters: {'error': error.toString()});
       } else {
         FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
       }
     }
-    FlutterError.presentError(FlutterErrorDetails(exception: error, stack: stack));
+    FlutterError.presentError(
+        FlutterErrorDetails(exception: error, stack: stack));
     // SystemNavigator.pop();
   });
 }
@@ -212,8 +219,10 @@ class MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     final palette = context.watch<AppPalette>().value;
-    final text = Theme.of(context).textTheme.withCustom(palette, Brightness.light);
-    final textDark = Theme.of(context).textTheme.withCustom(palette, Brightness.dark);
+    final text =
+        Theme.of(context).textTheme.withCustom(palette, Brightness.light);
+    final textDark =
+        Theme.of(context).textTheme.withCustom(palette, Brightness.dark);
     final sheet = Theme.of(context).bottomSheetTheme.copyWith(
           constraints: const BoxConstraints(maxWidth: double.infinity),
         );
@@ -227,22 +236,28 @@ class MyAppState extends State<MyApp> {
       locale: context.watch<AppLocale>().value,
       theme: ThemeData(
         colorScheme: const ColorScheme.light().withCustom(palette),
-        floatingActionButtonTheme: const FloatingActionButtonThemeData().withCustom(palette, Brightness.light),
+        floatingActionButtonTheme: const FloatingActionButtonThemeData()
+            .withCustom(palette, Brightness.light),
         brightness: Brightness.light,
         textTheme: text,
-        datePickerTheme: DatePickerTheme.of(context).withCustom(palette, text, Brightness.light),
-        timePickerTheme: TimePickerTheme.of(context).withCustom(palette, text, Brightness.light),
+        datePickerTheme: DatePickerTheme.of(context)
+            .withCustom(palette, text, Brightness.light),
+        timePickerTheme: TimePickerTheme.of(context)
+            .withCustom(palette, text, Brightness.light),
         dividerTheme: CustomDividerTheme(palette, Brightness.light),
         bottomSheetTheme: sheet,
         useMaterial3: true,
       ),
       darkTheme: ThemeData(
         colorScheme: const ColorScheme.dark().withCustom(palette),
-        floatingActionButtonTheme: const FloatingActionButtonThemeData().withCustom(palette, Brightness.dark),
+        floatingActionButtonTheme: const FloatingActionButtonThemeData()
+            .withCustom(palette, Brightness.dark),
         brightness: Brightness.dark,
         textTheme: textDark,
-        datePickerTheme: DatePickerTheme.of(context).withCustom(palette, textDark, Brightness.dark),
-        timePickerTheme: TimePickerTheme.of(context).withCustom(palette, textDark, Brightness.dark),
+        datePickerTheme: DatePickerTheme.of(context)
+            .withCustom(palette, textDark, Brightness.dark),
+        timePickerTheme: TimePickerTheme.of(context)
+            .withCustom(palette, textDark, Brightness.dark),
         dividerTheme: CustomDividerTheme(palette, Brightness.dark),
         bottomSheetTheme: sheet,
         useMaterial3: true,
@@ -252,7 +267,8 @@ class MyAppState extends State<MyApp> {
         textDirection: TextDirection.ltr,
         child: HomePage(),
       ),
-      onGenerateRoute: (settings) => AppPageRoute(builder: getPage(settings.name ?? '', settings.arguments)!),
+      onGenerateRoute: (settings) => AppPageRoute(
+          builder: getPage(settings.name ?? '', settings.arguments)!),
     );
   }
 }

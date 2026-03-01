@@ -1,6 +1,8 @@
 // Copyright 2023 The terCAD team. All rights reserved.
 // Use of this source code is governed by a CC BY-NC-ND 4.0 license that can be found in the LICENSE file.
 
+// ignore_for_file: prefer-match-file-name, member-ordering, no-magic-number, avoid-nested-conditional-expressions, newline-before-return, prefer-single-widget-per-file, avoid-late-keyword, prefer-using-list-view, prefer-extracting-callbacks, avoid-non-null-assertion
+
 import 'package:app_finance/_classes/herald/app_locale.dart';
 import 'package:app_finance/_classes/herald/app_start_of_month.dart';
 import 'package:app_finance/_classes/storage/app_data.dart';
@@ -44,12 +46,14 @@ class ComponentRecent extends StatelessWidget {
     double indent = ThemeHelper.getIndent(0.5);
     EdgeInsets margin = EdgeInsets.all(indent);
     ComponentRecentType? widgetType = data[type]?.toString().toEnum(ComponentRecentType.values);
-    final limit = switch (data[count].runtimeType) {
-      String => (data[count] as String).toInt(),
-      double => (data[count] as double).toInt(),
-      int => data[count],
-      _ => 7,
-    };
+    final countValue = data[count];
+    final limit = countValue is String
+        ? countValue.toInt()
+        : countValue is double
+            ? countValue.toInt()
+            : countValue is int
+                ? countValue
+                : 7;
     DateTime startingDay = DateTime.now().getStartingDay(AppStartOfMonth.get());
     return Consumer<AppData>(builder: (context, appState, _) {
       final exchange = Exchange(store: appState);

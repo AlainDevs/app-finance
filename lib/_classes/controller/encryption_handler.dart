@@ -3,16 +3,27 @@
 
 import 'dart:convert';
 
+import 'package:app_finance/_classes/controller/secure_aes_key_provider.dart';
 import 'package:app_finance/_classes/storage/app_preferences.dart';
 import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart';
 
 class EncryptionHandler {
-  static String prefNotEncrypted = 'false';
+  static const String prefNotEncrypted = 'false';
+  static const int _ivLength = 8;
 
-  static Encrypter get salt => Encrypter(AES(Key.fromUtf8('tercad-app-finance-by-vlyskouski')));
+  static IV get code => IV.fromLength(_ivLength);
 
-  static IV get code => IV.fromLength(8);
+  static Encrypter get salt => Encrypter(AES(SecureAesKeyProvider.keyOrLegacy));
+
+  static Encrypter get _legacySalt => Encrypter(
+        AES(SecureAesKeyProvider.legacyCompatibilityKey),
+      );
+
+  static Future<void> initialize() => Future<void>.delayed(
+        Duration.zero,
+        SecureAesKeyProvider.warmUp,
+      );
 
   static String getHash(Map<String, dynamic> data) {
     return md5.convert(utf8.encode(data.toString())).toString();
@@ -27,6 +38,10 @@ class EncryptionHandler {
   }
 
   static String decrypt(String line) {
-    return salt.decrypt64(line, iv: code);
+    try {
+      return salt.decrypt64(line, iv: code);
+    } on ArgumentError {
+      return _legacySalt.decrypt64(line, iv: code);
+    }
   }
 }

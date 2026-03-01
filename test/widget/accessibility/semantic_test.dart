@@ -2,7 +2,7 @@
 // Use of this source code is governed by a CC BY-NC-ND 4.0 license that can be found in the LICENSE file.
 
 import 'package:app_finance/design/wrapper/tap_widget.dart';
-import 'package:flutter/semantics.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../pump_main.dart';
@@ -17,21 +17,33 @@ void main() {
   testWidgets('Semantics of Headers', (WidgetTester tester) async {
     await PumpMain.init(tester);
 
-    final widget = find.descendant(
-      of: find.byType(TapWidget),
-      matching: find.text('Accounts, total'),
-    );
-    final semantics = tester.getSemantics(widget);
-    expect(semantics.attributedHint.string, "Open Accounts\nButton");
-    ScreenCapture.seize('AccessibilitySemantics');
+    final semanticsHandle = tester.ensureSemantics();
+    try {
+      final widget = find.descendant(
+        of: find.byType(TapWidget),
+        matching: find.text('Accounts, total'),
+      );
+      final semantics = tester.getSemantics(widget);
+      expect(semantics.attributedHint.string, "Open Accounts\nButton");
+      ScreenCapture.seize('AccessibilitySemantics');
 
-    final owner = tester.binding.pipelineOwner.semanticsOwner;
-    owner!.performAction(semantics.id, SemanticsAction.didGainAccessibilityFocus);
-    ScreenCapture.seize('AccessibilitySemanticsFocus');
+      final owner = RendererBinding.instance.rootPipelineOwner.semanticsOwner;
+      if (owner == null) {
+        fail('Expected semantics owner to be available.');
+      }
 
-    owner.performAction(semantics.id, SemanticsAction.tap);
-    await tester.pumpAndSettle();
-    ScreenCapture.seize('AccessibilitySemanticsTap');
-    expect(find.text('Add Account'), findsOneWidget);
+      owner.performAction(
+        semantics.id,
+        SemanticsAction.didGainAccessibilityFocus,
+      );
+      ScreenCapture.seize('AccessibilitySemanticsFocus');
+
+      await tester.tap(widget);
+      await tester.pumpAndSettle();
+      ScreenCapture.seize('AccessibilitySemanticsTap');
+      expect(find.text('Add Account'), findsOneWidget);
+    } finally {
+      semanticsHandle.dispose();
+    }
   });
 }

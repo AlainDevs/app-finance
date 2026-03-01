@@ -1,6 +1,8 @@
 // Copyright 2023 The terCAD team. All rights reserved.
 // Use of this source code is governed by a CC BY-NC-ND 4.0 license that can be found in the LICENSE file.
 
+// ignore_for_file: avoid-top-level-members-in-tests, member-ordering
+
 import 'dart:io' as io;
 import 'package:app_finance/_classes/herald/app_design.dart';
 import 'package:app_finance/_classes/herald/app_purchase.dart';
@@ -54,7 +56,6 @@ class PumpMain {
   static Future<void> initFonts() async {
     await _initFont('Abel-Regular');
     await _initFont('RobotoCondensed-Regular');
-    // await _initFont('MaterialIcons-Regular');
   }
 
   static Future<void> _initFont(String name) async {
@@ -73,6 +74,7 @@ class PumpMain {
       }
     } catch (e) {
       // Font loading failed, tests will use fallback fonts
+      // ignore: avoid_print
       print('Warning: Failed to load font $name, using fallback fonts');
     }
   }
@@ -111,6 +113,7 @@ class PumpMain {
     if (!isIntegration) {
       appData.isLoading = false;
     }
+
     return appData;
   }
 
