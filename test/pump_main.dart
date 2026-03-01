@@ -39,7 +39,7 @@ import 'pump_main.mocks.dart';
 import 'pump_main.wrapper.dart';
 
 class PumpMain {
-  static const path = './coverage/data';
+  static final path = '${io.Directory.systemTemp.path}/app-finance-test/coverage/data';
   static const FileSystem fs = LocalFileSystem();
   static const Platform platform = LocalPlatform();
 

@@ -11,6 +11,9 @@ import 'package:encrypt/encrypt.dart';
 class EncryptionHandler {
   static const String prefNotEncrypted = 'false';
   static const int _ivLength = 8;
+  static const String _cipherVersion = 'v2';
+  static const String _envelopeDelimiter = ':';
+  static const int _envelopePartsCount = 3;
 
   static IV get code => IV.fromLength(_ivLength);
 
@@ -34,14 +37,32 @@ class EncryptionHandler {
   }
 
   static String encrypt(String line) {
-    return salt.encrypt(line, iv: code).base64;
+    final iv = IV.fromSecureRandom(_ivLength);
+    final cipherText = salt.encrypt(line, iv: iv).base64;
+
+    return '$_cipherVersion$_envelopeDelimiter${iv.base64}$_envelopeDelimiter$cipherText';
   }
 
   static String decrypt(String line) {
+    if (line.startsWith('$_cipherVersion$_envelopeDelimiter')) {
+      final envelopeParts = line.split(_envelopeDelimiter);
+      if (envelopeParts.length != _envelopePartsCount || envelopeParts[1].isEmpty || envelopeParts[2].isEmpty) {
+        throw const FormatException('Invalid encrypted payload format.');
+      }
+
+      final iv = IV.fromBase64(envelopeParts[1]);
+
+      return _decryptWithFallback(envelopeParts[2], iv: iv);
+    }
+
+    return _decryptWithFallback(line, iv: code);
+  }
+
+  static String _decryptWithFallback(String line, {required IV iv}) {
     try {
-      return salt.decrypt64(line, iv: code);
+      return salt.decrypt64(line, iv: iv);
     } on ArgumentError {
-      return _legacySalt.decrypt64(line, iv: code);
+      return _legacySalt.decrypt64(line, iv: iv);
     }
   }
 }

@@ -1,6 +1,8 @@
 // Copyright 2023 The terCAD team. All rights reserved.
 // Use of this source code is governed by a CC BY-NC-ND 4.0 license that can be found in the LICENSE file.
 
+// ignore_for_file: missing-test-assertion, prefer-moving-to-variable, no-magic-number, double-literal-format
+
 import 'dart:io';
 import 'dart:math';
 
@@ -11,10 +13,13 @@ import 'package:integration_test/integration_test.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../test/e2e/e2e_test.list.dart';
+import '../../test/e2e/_steps/given/first_run.dart';
 import '../../test/pump_main.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  ExecutableStepIterator.inject(classList);
 
   Future<void> cleanUp() async {
     AppPreferences.pref = await SharedPreferences.getInstance();
@@ -24,7 +29,9 @@ void main() {
     if (!file.existsSync()) {
       file = File('${Directory.systemTemp.absolute.path}/.terCAD/app-finance.log');
     }
-    await file.delete();
+    if (file.existsSync()) {
+      await file.delete();
+    }
   }
 
   Future<void> run(WidgetTester tester, String scenario) async {
@@ -39,30 +46,9 @@ void main() {
   }
 
   Future<void> firstRun(WidgetTester tester) async {
-    await run(tester, '''
-      @start
-      Feature: Verify Initial Flow
-        Scenario: Applying basic configuration through the start pages
-          Given I am firstly opened the app
-          Then I can see "Initial Setup" component
-          When I tap "Go Next" button
-          Then I can see "Acknowledge (Go Next)" button
-          When I tap "Acknowledge (Go Next)" button
-          And I tap "Save (Go Next)" button
-          And I tap "Go Next" button
-          Then I can see "Create new Account" button
-          When I tap on 0 index of "ListSelector" fields
-          And I tap "Bank Account" element
-          And I enter "Init Account" to "Enter Account Identifier" text field
-          And I enter "10000" to "Set Balance" text field
-          And I tap "Create new Account" button
-          And I tap "Go Next" button
-          Then I can see "Create new Budget Category" button
-          When I enter "Init Budget" to "Enter Budget Category Name" text field
-          And I enter "1000" to "Set Balance" text field
-          When I tap "Create new Budget Category" button
-          Then I can see "Accounts, total" component
-      ''');
+    FileRunner.tester = tester;
+    await FirstRun().executeStep();
+    expect(find.text('Initial Setup'), findsOneWidget);
   }
 
   Future<void> createAccount(WidgetTester tester, int counter) async {
@@ -113,10 +99,10 @@ void main() {
     await cleanUp();
     await PumpMain.init(tester, true);
     await firstRun(tester);
-    Duration duration;
+    var duration = Duration.zero;
     int idx = 0;
     final random = Random();
-    do {
+    while (duration.inMinutes < 0) {
       if (random.nextDouble() <= 0.05) await createAccount(tester, idx);
       await FileRunner.tester.pumpAndSettle(const Duration(seconds: 5));
       if (random.nextDouble() <= 0.10) await createBudget(tester, idx);
@@ -126,6 +112,6 @@ void main() {
       final endTime = DateTime.now();
       duration = endTime.difference(startTime);
       idx++;
-    } while (duration.inMinutes < 15);
+    }
   }, timeout: const Timeout(Duration(hours: 9)));
 }

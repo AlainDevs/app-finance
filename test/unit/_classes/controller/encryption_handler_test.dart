@@ -18,6 +18,11 @@ import 'encryption_handler_test.mocks.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  const expectedStaticIvLength = 8;
+  const aesKeyLengthInBytes = 32;
+  const warmUpTestKeyByte = 7;
+  const expectedEnvelopePartsCount = 3;
+  const dynamicKeySeedOffset = 1;
 
   const secureStorageChannel = MethodChannel(
     'plugins.it_nomads.com/flutter_secure_storage',
@@ -55,7 +60,7 @@ void main() {
 
   group('EncryptionHandler', () {
     test('code has expected static iv length', () {
-      expect(EncryptionHandler.code.bytes.length, 8);
+      expect(EncryptionHandler.code.bytes.length, expectedStaticIvLength);
     });
 
     test('getHash', () {
@@ -65,7 +70,7 @@ void main() {
 
     test('initialize completes by triggering secure key provider warm-up', () async {
       secureStorage[secureStorageKey] = base64Encode(
-        List<int>.filled(32, 7),
+        List<int>.filled(aesKeyLengthInBytes, warmUpTestKeyByte),
       );
 
       await expectLater(EncryptionHandler.initialize(), completes);
@@ -89,8 +94,36 @@ void main() {
     test('encrypt / decrypt', () {
       const data = 'sample content';
       final enc = EncryptionHandler.encrypt(data);
-      expect(enc.length, 24);
+
+      final envelopeParts = enc.split(':');
+      expect(envelopeParts.length, expectedEnvelopePartsCount);
+      expect(envelopeParts.first, 'v2');
+      expect(envelopeParts[1], isNotEmpty);
+      expect(envelopeParts[2], isNotEmpty);
+
       expect(EncryptionHandler.decrypt(enc), data);
+    });
+
+    test('encrypt uses dynamic IV and produces non-deterministic ciphertext', () {
+      const data = 'same input';
+
+      final first = EncryptionHandler.encrypt(data);
+      final second = EncryptionHandler.encrypt(data);
+
+      expect(first, isNot(equals(second)));
+      expect(EncryptionHandler.decrypt(first), data);
+      expect(EncryptionHandler.decrypt(second), data);
+    });
+
+    test('decrypt supports legacy static-IV ciphertext encrypted with current key', () async {
+      await EncryptionHandler.initialize();
+
+      const plainText = 'current-key legacy-format content';
+      final legacyEncryptedByCurrentKey = Encrypter(
+        AES(SecureAesKeyProvider.keyOrLegacy),
+      ).encrypt(plainText, iv: EncryptionHandler.code).base64;
+
+      expect(EncryptionHandler.decrypt(legacyEncryptedByCurrentKey), plainText);
     });
 
     test('decrypt falls back to legacy key when current key fails', () async {
@@ -98,7 +131,11 @@ void main() {
           base64Encode(SecureAesKeyProvider.legacyCompatibilityKey.bytes);
       if (usesLegacyByDefault) {
         secureStorage[secureStorageKey] = base64Encode(
-          List<int>.generate(32, (i) => i + 1, growable: false),
+          List<int>.generate(
+            aesKeyLengthInBytes,
+            (i) => i + dynamicKeySeedOffset,
+            growable: false,
+          ),
         );
         await EncryptionHandler.initialize();
       }
@@ -109,6 +146,40 @@ void main() {
       ).encrypt(plainText, iv: EncryptionHandler.code).base64;
 
       expect(EncryptionHandler.decrypt(legacyEncrypted), plainText);
+    });
+
+    test('[Boundary] decrypt rejects v2 payload without all envelope parts', () {
+      expect(
+        () => EncryptionHandler.decrypt('v2:missing-ciphertext-part'),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('[Edge Case] decrypt supports v2 payload encrypted with legacy key', () async {
+      final usesLegacyByDefault = base64Encode(SecureAesKeyProvider.keyOrLegacy.bytes) ==
+          base64Encode(
+            SecureAesKeyProvider.legacyCompatibilityKey.bytes,
+          );
+      if (usesLegacyByDefault) {
+        secureStorage[secureStorageKey] = base64Encode(
+          List<int>.generate(
+            aesKeyLengthInBytes,
+            (i) => i + dynamicKeySeedOffset,
+            growable: false,
+          ),
+        );
+        await EncryptionHandler.initialize();
+      }
+
+      const plainText = 'legacy-key v2 payload: Δ, emoji 🔒, newline\nline2';
+      final iv = IV.fromSecureRandom(expectedStaticIvLength);
+      final legacyV2CipherText = Encrypter(
+        AES(SecureAesKeyProvider.legacyCompatibilityKey),
+      ).encrypt(plainText, iv: iv).base64;
+
+      final legacyV2Envelope = 'v2:${iv.base64}:$legacyV2CipherText';
+
+      expect(EncryptionHandler.decrypt(legacyV2Envelope), plainText);
     });
 
     test('decrypt rethrows non-argument errors (invalid base64)', () {
