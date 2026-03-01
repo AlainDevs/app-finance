@@ -4,9 +4,32 @@
 
 import 'package:app_finance/_classes/controller/encryption_handler.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  const channel = MethodChannel(
+    'plugins.it_nomads.com/flutter_secure_storage',
+  );
+
+  setUp(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      if (call.method == 'read') {
+        return 'not-base64-@@@';
+      }
+
+      return null;
+    });
+  });
+
+  tearDown(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null);
+  });
+
   testWidgets(
     '[Edge Case] should render bootstrap widget even when secure key init fails',
     (tester) async {

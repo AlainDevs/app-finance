@@ -98,8 +98,8 @@ class AccountViewPageState extends AbstractPageState<AccountViewPage> {
   }
 
   String _getRoute(dynamic item) => switch (item.runtimeType) {
-        BillAppData => AppRoute.billViewRoute,
-        InvoiceAppData => AppRoute.invoiceViewRoute,
+        BillAppData _ => AppRoute.billViewRoute,
+        InvoiceAppData _ => AppRoute.invoiceViewRoute,
         _ => '',
       };
 

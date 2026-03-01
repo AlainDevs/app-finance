@@ -2,7 +2,7 @@
 // Use of this source code is governed by a CC BY-NC-ND 4.0 license that can be found in the LICENSE file.
 
 import 'package:app_finance/design/wrapper/tap_widget.dart';
-import 'package:flutter/semantics.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../pump_main.dart';
@@ -25,8 +25,9 @@ void main() {
     expect(semantics.attributedHint.string, "Open Accounts\nButton");
     ScreenCapture.seize('AccessibilitySemantics');
 
-    final owner = tester.binding.pipelineOwner.semanticsOwner;
-    owner!.performAction(semantics.id, SemanticsAction.didGainAccessibilityFocus);
+    final owner = RendererBinding.instance.rootPipelineOwner.semanticsOwner;
+    owner!
+        .performAction(semantics.id, SemanticsAction.didGainAccessibilityFocus);
     ScreenCapture.seize('AccessibilitySemanticsFocus');
 
     owner.performAction(semantics.id, SemanticsAction.tap);

@@ -11,9 +11,16 @@ import 'package:encrypt/encrypt.dart';
 class EncryptionHandler {
   static String prefNotEncrypted = 'false';
 
-  static Future<void> initialize() => SecureAesKeyProvider.warmUp();
+  static Future<void> initialize() => Future<void>.delayed(
+        Duration.zero,
+        SecureAesKeyProvider.warmUp,
+      );
 
-  static Encrypter get salt => Encrypter(AES(SecureAesKeyProvider.cachedKey));
+  static Encrypter get salt => Encrypter(AES(SecureAesKeyProvider.keyOrLegacy));
+
+  static Encrypter get _legacySalt => Encrypter(
+        AES(SecureAesKeyProvider.legacyCompatibilityKey),
+      );
 
   static IV get code => IV.fromLength(8);
 
@@ -30,6 +37,10 @@ class EncryptionHandler {
   }
 
   static String decrypt(String line) {
-    return salt.decrypt64(line, iv: code);
+    try {
+      return salt.decrypt64(line, iv: code);
+    } on ArgumentError {
+      return _legacySalt.decrypt64(line, iv: code);
+    }
   }
 }

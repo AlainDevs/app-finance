@@ -17,11 +17,13 @@ void main() {
 
       for (var v in testCases) {
         test(': $v', () {
-          final _ = switch (v.type) {
-            double => expect(v.input.toMap<int, double>(), v.result),
-            String => expect(v.input.toMap<String, String>(), v.result),
-            _ => expect(v.input.toMap<int, double?>(), v.result),
-          };
+          if (v.type == double) {
+            expect(v.input.toMap<int, double>(), v.result);
+          } else if (v.type == String) {
+            expect(v.input.toMap<String, String>(), v.result);
+          } else {
+            expect(v.input.toMap<int, double?>(), v.result);
+          }
         });
       }
     });
@@ -55,11 +57,13 @@ void main() {
 
       for (var v in testCases) {
         test(': $v', () {
-          final _ = switch (v.type) {
-            double => expect(v.input.toList<double>(), v.result),
-            String => expect(v.input.toList<String>(), v.result),
-            _ => expect(v.input.toList<Map<String, dynamic>>(), v.result),
-          };
+          if (v.type == double) {
+            expect(v.input.toList<double>(), v.result);
+          } else if (v.type == String) {
+            expect(v.input.toList<String>(), v.result);
+          } else {
+            expect(v.input.toList<Map<String, dynamic>>(), v.result);
+          }
         });
       }
     });

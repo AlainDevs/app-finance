@@ -153,19 +153,15 @@ class ForegroundChartPainter extends AbstractPainter {
       if (yType != null || i == 0) {
         canvas.drawLine(Offset(shift, y), Offset(size.width, y), lineColor);
       }
-      switch (yType) {
-        case double:
-          final formatter = yTpl ?? intl.NumberFormat.decimalPatternDigits(decimalDigits: 2, locale: AppLocale.code);
-          _paintText(canvas, textArea, y - textArea / 3, formatter.format(yMin + delta));
-          break;
-        case IconData:
-          final code = i >= yMap.length ? null : yMap[i];
-          _paintIcon(canvas, textArea, y - textArea, code);
-          break;
-        case Percentage:
-          final formatter = yTpl ?? intl.NumberFormat.decimalPatternDigits(decimalDigits: 0, locale: AppLocale.code);
-          _paintText(canvas, textArea, y - textArea / 3, formatter.format(yMin + delta) + ' %');
-          break;
+      if (yType == double) {
+        final formatter = yTpl ?? intl.NumberFormat.decimalPatternDigits(decimalDigits: 2, locale: AppLocale.code);
+        _paintText(canvas, textArea, y - textArea / 3, formatter.format(yMin + delta));
+      } else if (yType == IconData) {
+        final code = i >= yMap.length ? null : yMap[i];
+        _paintIcon(canvas, textArea, y - textArea, code);
+      } else if (yType == Percentage) {
+        final formatter = yTpl ?? intl.NumberFormat.decimalPatternDigits(decimalDigits: 0, locale: AppLocale.code);
+        _paintText(canvas, textArea, y - textArea / 3, formatter.format(yMin + delta) + ' %');
       }
     }
   }
@@ -181,10 +177,7 @@ class ForegroundChartPainter extends AbstractPainter {
     final background = Paint()
       ..color = this.background.withValues(alpha: 0.05)
       ..style = PaintingStyle.fill;
-    double step = switch (xType) {
-      DateTime => (xMax - xMin - 1) / xDiv,
-      _ => (xMax - xMin) / xDiv,
-    };
+    double step = xType == DateTime ? (xMax - xMin - 1) / xDiv : (xMax - xMin) / xDiv;
     double height = size.height - textArea;
     for (int i = 0; i <= xDiv; i++) {
       double delta = step * (xDiv - i);

@@ -73,6 +73,7 @@ class PumpMain {
       }
     } catch (e) {
       // Font loading failed, tests will use fallback fonts
+      // ignore: avoid_print
       print('Warning: Failed to load font $name, using fallback fonts');
     }
   }

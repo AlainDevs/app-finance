@@ -44,12 +44,14 @@ class ComponentRecent extends StatelessWidget {
     double indent = ThemeHelper.getIndent(0.5);
     EdgeInsets margin = EdgeInsets.all(indent);
     ComponentRecentType? widgetType = data[type]?.toString().toEnum(ComponentRecentType.values);
-    final limit = switch (data[count].runtimeType) {
-      String => (data[count] as String).toInt(),
-      double => (data[count] as double).toInt(),
-      int => data[count],
-      _ => 7,
-    };
+    final countValue = data[count];
+    final limit = countValue is String
+        ? countValue.toInt()
+        : countValue is double
+            ? countValue.toInt()
+            : countValue is int
+                ? countValue
+                : 7;
     DateTime startingDay = DateTime.now().getStartingDay(AppStartOfMonth.get());
     return Consumer<AppData>(builder: (context, appState, _) {
       final exchange = Exchange(store: appState);

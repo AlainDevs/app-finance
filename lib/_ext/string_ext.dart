@@ -5,12 +5,17 @@ import 'dart:convert';
 
 extension MapExt on String {
   T _asType<T>(value) {
-    return switch (T) {
-      int => int.tryParse(value) as T,
-      double => double.tryParse(value) as T,
-      String => value.toString() as T,
-      _ => null as T,
-    };
+    if (T == int) {
+      return int.tryParse(value) as T;
+    }
+    if (T == double) {
+      return double.tryParse(value) as T;
+    }
+    if (T == String) {
+      return value.toString() as T;
+    }
+
+    return null as T;
   }
 
   Map<T, K> toMap<T, K>() {
@@ -24,18 +29,22 @@ extension MapExt on String {
       final key = _asType<T>(parts[0].trim());
       result[key] = _asType<K>(parts[1].trim());
     }
+
     return result;
   }
 
   String _wrap() {
     if (contains('{')) {
       RegExp pattern = RegExp(r"(\w+):\s*([\w\.\- ]+)");
+
       return replaceAllMapped(pattern, (match) {
         String key = match.group(1) ?? '_';
         String value = match.group(2)?.trim() ?? '';
+
         return '"$key": ${num.tryParse(value) ?? '"$value"'}';
       });
     }
+
     return this;
   }
 
@@ -45,6 +54,7 @@ extension MapExt on String {
     for (final value in data) {
       result.add(value);
     }
+
     return result;
   }
 

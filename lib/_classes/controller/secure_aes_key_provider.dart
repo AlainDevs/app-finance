@@ -13,17 +13,25 @@ class SecureAesKeyProvider {
   static const _storageKey = 'app_finance_aes_key_v1';
   static const _aesKeyLength = 32;
   static const _storage = FlutterSecureStorage();
+  static const _legacyKeyUtf8 = 'tercad-app-finance-by-vlyskouski';
 
   static Key? _cachedKey;
   static Future<Key>? _pending;
+
+  static final Key _legacyCompatibilityKey = Key.fromUtf8(_legacyKeyUtf8);
 
   static Key get cachedKey {
     final key = _cachedKey;
     if (key == null) {
       throw StateError('Encryption key is not initialized.');
     }
+
     return key;
   }
+
+  static Key get keyOrLegacy => _cachedKey ?? _legacyCompatibilityKey;
+
+  static Key get legacyCompatibilityKey => _legacyCompatibilityKey;
 
   static Future<void> warmUp() async {
     _cachedKey ??= await _loadOrCreate();
@@ -40,13 +48,10 @@ class SecureAesKeyProvider {
   static Future<Key> _readOrCreate() async {
     final encoded = await _storage.read(key: _storageKey);
     if (encoded != null) {
-      try {
-        final restored = _toKey(encoded);
-        _cachedKey = restored;
-        return restored;
-      } on FormatException {
-        await _storage.delete(key: _storageKey);
-      }
+      final restored = _toKey(encoded);
+      _cachedKey = restored;
+
+      return restored;
     }
 
     final generated = _generateKey();
@@ -54,7 +59,15 @@ class SecureAesKeyProvider {
       key: _storageKey,
       value: base64Encode(generated.bytes),
     );
+    final writtenBack = await _storage.read(key: _storageKey);
+    if (writtenBack == null) {
+      throw const FormatException(
+        'Unable to persist AES key in secure storage.',
+      );
+    }
+    _toKey(writtenBack);
     _cachedKey = generated;
+
     return generated;
   }
 
@@ -65,6 +78,7 @@ class SecureAesKeyProvider {
       (_) => random.nextInt(256),
       growable: false,
     );
+
     return Key(Uint8List.fromList(bytes));
   }
 
@@ -73,6 +87,7 @@ class SecureAesKeyProvider {
     if (bytes.length != _aesKeyLength) {
       throw const FormatException('Stored key has an unexpected length.');
     }
+
     return Key(Uint8List.fromList(bytes));
   }
 }
