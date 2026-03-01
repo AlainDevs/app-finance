@@ -3,8 +3,15 @@
 
 import 'dart:convert';
 
-extension MapExt on String {
-  T _asType<T>(value) {
+import 'package:characters/characters.dart';
+
+extension StringExt on String {
+  static const _mapEnvelopeLength = 2;
+  static const _pairLength = 2;
+  static const _keyGroupIndex = 1;
+  static const _valueGroupIndex = 2;
+
+  T _asType<T>(String value) {
     if (T == int) {
       return int.tryParse(value) as T;
     }
@@ -19,14 +26,20 @@ extension MapExt on String {
   }
 
   Map<T, K> toMap<T, K>() {
-    final data = length > 0 ? substring(1, length - 1).split(',') : [];
+    if (isEmpty || characters.length < _mapEnvelopeLength) {
+      return <T, K>{};
+    }
+
+    final content = characters.skip(1).take(characters.length - _mapEnvelopeLength).toString();
+    final data = content.split(',');
     final Map<T, K> result = {};
     for (final pair in data) {
       final parts = pair.split(':');
-      if (parts.length != 2 || parts[0] == null) {
+      if (parts.length != _pairLength) {
         continue;
       }
-      final key = _asType<T>(parts[0].trim());
+
+      final key = _asType<T>(parts.first.trim());
       result[key] = _asType<K>(parts[1].trim());
     }
 
@@ -35,11 +48,11 @@ extension MapExt on String {
 
   String _wrap() {
     if (contains('{')) {
-      RegExp pattern = RegExp(r"(\w+):\s*([\w\.\- ]+)");
+      final pattern = RegExp(r'(\w+):\s*([\w\.\- ]+)');
 
       return replaceAllMapped(pattern, (match) {
-        String key = match.group(1) ?? '_';
-        String value = match.group(2)?.trim() ?? '';
+        final key = match.group(_keyGroupIndex) ?? '_';
+        final value = match.group(_valueGroupIndex)?.trim() ?? '';
 
         return '"$key": ${num.tryParse(value) ?? '"$value"'}';
       });

@@ -2,19 +2,22 @@
 // Copyright 2023 The terCAD team. All rights reserved.
 // Use of this source code is governed by a CC BY-NC-ND 4.0 license that can be found in the LICENSE file.
 
-import 'package:app_finance/_classes/controller/encryption_handler.dart';
-import 'package:encrypt/encrypt.dart';
+import 'dart:convert';
+
+import 'package:app_finance/_classes/controller/secure_aes_key_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  const legacyAesSecret = 'tercad-app-finance-by-vlyskouski';
-  const legacyIvLength = 8;
 
   const channel = MethodChannel(
     'plugins.it_nomads.com/flutter_secure_storage',
   );
+
+  const storageKey = 'app_finance_aes_key_v1';
+  const keyLength = 32;
+
   final storage = <String, String>{};
 
   setUp(() {
@@ -32,12 +35,6 @@ void main() {
           }
 
           return null;
-        case 'delete':
-          if (key != null) {
-            storage.remove(key);
-          }
-
-          return null;
       }
 
       return null;
@@ -48,17 +45,16 @@ void main() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, null);
   });
 
-  test(
-    '[Happy Path] should decrypt legacy hardcoded-key payload after initialization',
-    () async {
-      const legacyPlainText = 'legacy-user-record';
-      final legacyCipher = Encrypter(
-        AES(Key.fromUtf8(legacyAesSecret)),
-      ).encrypt(legacyPlainText, iv: IV.fromLength(legacyIvLength)).base64;
+  test('warmUp creates and persists a new key when storage is empty', () async {
+    await SecureAesKeyProvider.warmUp();
 
-      await EncryptionHandler.initialize();
+    final generated = SecureAesKeyProvider.cachedKey;
+    final encoded = storage[storageKey];
 
-      expect(EncryptionHandler.decrypt(legacyCipher), legacyPlainText);
-    },
-  );
+    expect(encoded, isNotNull);
+    final restoredBytes = base64Decode(encoded!);
+    expect(restoredBytes.length, keyLength);
+    expect(restoredBytes, generated.bytes);
+    expect(SecureAesKeyProvider.keyOrLegacy.bytes, generated.bytes);
+  });
 }

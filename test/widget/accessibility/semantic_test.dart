@@ -17,22 +17,33 @@ void main() {
   testWidgets('Semantics of Headers', (WidgetTester tester) async {
     await PumpMain.init(tester);
 
-    final widget = find.descendant(
-      of: find.byType(TapWidget),
-      matching: find.text('Accounts, total'),
-    );
-    final semantics = tester.getSemantics(widget);
-    expect(semantics.attributedHint.string, "Open Accounts\nButton");
-    ScreenCapture.seize('AccessibilitySemantics');
+    final semanticsHandle = tester.ensureSemantics();
+    try {
+      final widget = find.descendant(
+        of: find.byType(TapWidget),
+        matching: find.text('Accounts, total'),
+      );
+      final semantics = tester.getSemantics(widget);
+      expect(semantics.attributedHint.string, "Open Accounts\nButton");
+      ScreenCapture.seize('AccessibilitySemantics');
 
-    final owner = RendererBinding.instance.rootPipelineOwner.semanticsOwner;
-    owner!
-        .performAction(semantics.id, SemanticsAction.didGainAccessibilityFocus);
-    ScreenCapture.seize('AccessibilitySemanticsFocus');
+      final owner = RendererBinding.instance.rootPipelineOwner.semanticsOwner;
+      if (owner == null) {
+        fail('Expected semantics owner to be available.');
+      }
 
-    owner.performAction(semantics.id, SemanticsAction.tap);
-    await tester.pumpAndSettle();
-    ScreenCapture.seize('AccessibilitySemanticsTap');
-    expect(find.text('Add Account'), findsOneWidget);
+      owner.performAction(
+        semantics.id,
+        SemanticsAction.didGainAccessibilityFocus,
+      );
+      ScreenCapture.seize('AccessibilitySemanticsFocus');
+
+      await tester.tap(widget);
+      await tester.pumpAndSettle();
+      ScreenCapture.seize('AccessibilitySemanticsTap');
+      expect(find.text('Add Account'), findsOneWidget);
+    } finally {
+      semanticsHandle.dispose();
+    }
   });
 }

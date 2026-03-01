@@ -1,6 +1,8 @@
 // Copyright 2023 The terCAD team. All rights reserved.
 // Use of this source code is governed by a CC BY-NC-ND 4.0 license that can be found in the LICENSE file.
 
+// ignore_for_file: avoid-dynamic, avoid-late-keyword, no-magic-number, member-ordering, prefer-first
+
 import 'package:app_finance/_classes/herald/app_locale.dart';
 import 'package:app_finance/charts/painter/abstract_painter.dart';
 import 'package:flutter/material.dart';

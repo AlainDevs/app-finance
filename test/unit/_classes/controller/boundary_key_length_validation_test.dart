@@ -10,6 +10,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  const invalidKeyLength = 31;
+  const repeatedByte = 7;
 
   const channel = MethodChannel(
     'plugins.it_nomads.com/flutter_secure_storage',
@@ -19,10 +21,16 @@ void main() {
   setUp(() {
     storage
       ..clear()
-      ..['app_finance_aes_key_v1'] = base64Encode(List<int>.filled(31, 7, growable: false));
+      ..['app_finance_aes_key_v1'] = base64Encode(
+        List<int>.filled(
+          invalidKeyLength,
+          repeatedByte,
+          growable: false,
+        ),
+      );
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
-      final args = (call.arguments as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
+      final args = (call.arguments as Map?)?.cast<String, Object?>() ?? <String, Object?>{};
       final key = args['key'] as String?;
 
       switch (call.method) {

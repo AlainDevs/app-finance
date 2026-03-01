@@ -9,12 +9,10 @@ import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart';
 
 class EncryptionHandler {
-  static String prefNotEncrypted = 'false';
+  static const String prefNotEncrypted = 'false';
+  static const int _ivLength = 8;
 
-  static Future<void> initialize() => Future<void>.delayed(
-        Duration.zero,
-        SecureAesKeyProvider.warmUp,
-      );
+  static IV get code => IV.fromLength(_ivLength);
 
   static Encrypter get salt => Encrypter(AES(SecureAesKeyProvider.keyOrLegacy));
 
@@ -22,7 +20,10 @@ class EncryptionHandler {
         AES(SecureAesKeyProvider.legacyCompatibilityKey),
       );
 
-  static IV get code => IV.fromLength(8);
+  static Future<void> initialize() => Future<void>.delayed(
+        Duration.zero,
+        SecureAesKeyProvider.warmUp,
+      );
 
   static String getHash(Map<String, dynamic> data) {
     return md5.convert(utf8.encode(data.toString())).toString();

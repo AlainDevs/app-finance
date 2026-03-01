@@ -1,6 +1,8 @@
 // Copyright 2023 The terCAD team. All rights reserved.
 // Use of this source code is governed by a CC BY-NC-ND 4.0 license that can be found in the LICENSE file.
 
+// ignore_for_file: prefer-match-file-name, member-ordering, no-magic-number, avoid-nested-conditional-expressions, newline-before-return, prefer-single-widget-per-file, avoid-late-keyword, prefer-using-list-view, prefer-extracting-callbacks, avoid-non-null-assertion
+
 import 'package:app_finance/_classes/herald/app_locale.dart';
 import 'package:app_finance/_classes/herald/app_start_of_month.dart';
 import 'package:app_finance/_classes/storage/app_data.dart';
