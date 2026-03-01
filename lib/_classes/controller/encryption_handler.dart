@@ -3,6 +3,7 @@
 
 import 'dart:convert';
 
+import 'package:app_finance/_classes/controller/secure_aes_key_provider.dart';
 import 'package:app_finance/_classes/storage/app_preferences.dart';
 import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart';
@@ -10,7 +11,9 @@ import 'package:encrypt/encrypt.dart';
 class EncryptionHandler {
   static String prefNotEncrypted = 'false';
 
-  static Encrypter get salt => Encrypter(AES(Key.fromUtf8('tercad-app-finance-by-vlyskouski')));
+  static Future<void> initialize() => SecureAesKeyProvider.warmUp();
+
+  static Encrypter get salt => Encrypter(AES(SecureAesKeyProvider.cachedKey));
 
   static IV get code => IV.fromLength(8);
 
