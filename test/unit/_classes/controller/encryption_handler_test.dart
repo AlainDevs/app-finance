@@ -148,6 +148,40 @@ void main() {
       expect(EncryptionHandler.decrypt(legacyEncrypted), plainText);
     });
 
+    test('[Boundary] decrypt rejects v2 payload without all envelope parts', () {
+      expect(
+        () => EncryptionHandler.decrypt('v2:missing-ciphertext-part'),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('[Edge Case] decrypt supports v2 payload encrypted with legacy key', () async {
+      final usesLegacyByDefault = base64Encode(SecureAesKeyProvider.keyOrLegacy.bytes) ==
+          base64Encode(
+            SecureAesKeyProvider.legacyCompatibilityKey.bytes,
+          );
+      if (usesLegacyByDefault) {
+        secureStorage[secureStorageKey] = base64Encode(
+          List<int>.generate(
+            aesKeyLengthInBytes,
+            (i) => i + dynamicKeySeedOffset,
+            growable: false,
+          ),
+        );
+        await EncryptionHandler.initialize();
+      }
+
+      const plainText = 'legacy-key v2 payload: Δ, emoji 🔒, newline\nline2';
+      final iv = IV.fromSecureRandom(expectedStaticIvLength);
+      final legacyV2CipherText = Encrypter(
+        AES(SecureAesKeyProvider.legacyCompatibilityKey),
+      ).encrypt(plainText, iv: iv).base64;
+
+      final legacyV2Envelope = 'v2:${iv.base64}:$legacyV2CipherText';
+
+      expect(EncryptionHandler.decrypt(legacyV2Envelope), plainText);
+    });
+
     test('decrypt rethrows non-argument errors (invalid base64)', () {
       expect(
         () => EncryptionHandler.decrypt('not-base64-@@@'),

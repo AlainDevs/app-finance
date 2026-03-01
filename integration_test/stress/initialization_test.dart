@@ -1,6 +1,8 @@
 // Copyright 2023 The terCAD team. All rights reserved.
 // Use of this source code is governed by a CC BY-NC-ND 4.0 license that can be found in the LICENSE file.
 
+// ignore_for_file: missing-test-assertion
+
 import 'dart:io';
 import 'package:app_finance/_classes/storage/transaction_log.dart';
 import 'package:flutter_gherkin_wrapper/flutter_gherkin_wrapper.dart';
@@ -15,21 +17,22 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   Future<File> getLog() async {
-    var file = File('coverage/initialization.log');
+    final file = File('${Directory.systemTemp.path}/app-finance-test/coverage/initialization.log');
     if (!(await file.exists())) {
       await file.create(recursive: true);
     }
+
     return file;
   }
 
   Future<void> doubleTransactionSize() async {
-    //await for (var line in TransactionLog.read()) {
-    //  await TransactionLog.saveRaw(line);
-    //}
     final path = await getApplicationDocumentsDirectory();
     var file = File('${path.absolute.path}/.terCAD/app-finance.log');
     if (!file.existsSync()) {
       file = File('${Directory.systemTemp.absolute.path}/.terCAD/app-finance.log');
+    }
+    if (!file.existsSync()) {
+      return;
     }
     final existingContent = await file.readAsString();
     await file.writeAsString(existingContent, mode: FileMode.append);
@@ -37,7 +40,7 @@ void main() {
 
   testWidgets('Cover Initial Page', (WidgetTester tester) async {
     final file = await getLog();
-    doubleTransactionSize();
+    await doubleTransactionSize();
     final startTime = DateTime.now();
     await PumpMain.init(tester, true);
     FileRunner.tester = tester;
