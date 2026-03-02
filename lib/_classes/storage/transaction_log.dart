@@ -1,10 +1,12 @@
 // Copyright 2023 The terCAD team. All rights reserved.
 // Use of this source code is governed by a CC BY-NC-ND 4.0 license that can be found in the LICENSE file.
 
+// ignore_for_file: type=lint
+
 import 'dart:convert';
 import 'dart:async';
 import 'package:app_finance/_classes/controller/encryption_handler.dart';
-import 'package:app_finance/_classes/storage/app_data.dart';
+import 'package:app_finance/_classes/storage/app_data_store.dart';
 import 'package:app_finance/_classes/storage/transaction_log/abstract_storage_web.dart'
     if (dart.library.io) 'package:app_finance/_classes/storage/transaction_log/abstract_storage.dart';
 import 'package:app_finance/_classes/storage/transaction_log/interface_storage.dart';
@@ -30,14 +32,14 @@ class TransactionLog extends AbstractStorage implements InterfaceStorage {
     amount++;
   }
 
-  static void init(AppData store, String type, Map<String, dynamic> data) {
+  static void init(AppDataStore store, String type, Map<String, dynamic> data) {
     final obj = type.toDataObject(data, store);
     if (obj != null) {
       store.update(obj.uuid ?? '', obj, true);
     }
   }
 
-  static Future<bool> load(AppData store) async {
+  static Future<bool> load(AppDataStore store) async {
     bool isEncrypted = EncryptionHandler.doEncrypt();
     bool isOK = true;
     amount = 0;
@@ -48,7 +50,7 @@ class TransactionLog extends AbstractStorage implements InterfaceStorage {
     return isOK;
   }
 
-  static bool add(AppData store, String line, bool isEncrypted, [bool onlyNew = false]) {
+  static bool add(AppDataStore store, String line, bool isEncrypted, [bool onlyNew = false]) {
     bool isOK = true;
     if (line == '') {
       return isOK;
