@@ -60,6 +60,13 @@ jobs:
           dart run grinder test --coverage > test_execution.log
           dart run test_cov_console --file="./coverage/lcov.info" --total > coverage/test_total.log
 
+      - name: Coverage Gate (must exceed 25.02% baseline)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          COVERAGE=$(dart run test_cov_console --file="./coverage/lcov.info" --total | grep -oP '\d+\.\d+' | tail -1)
+          echo "Coverage: $COVERAGE%"
+          awk -v cov="$COVERAGE" 'BEGIN { if (cov+0 <= 25.02) { print "FAIL: coverage " cov "% <= 25.02% baseline"; exit 1 } else { print "PASS: coverage " cov "% > 25.02% baseline" } }'
+
       - name: Generate Golden Images
         if: ${{ failure() }}
         run: flutter test --update-goldens test/widget

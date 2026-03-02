@@ -60,7 +60,13 @@ jobs:
         run: |
           flutter test --coverage
           dart run test_cov_console --file="./coverage/lcov.info" --total | tr -d '[:space:]' > ./coverage/test_total.log
-      
+
+      - name: Coverage Gate (must exceed 25.02% baseline)
+        run: |
+          COVERAGE=$(dart run test_cov_console --file="./coverage/lcov.info" --total | grep -oP '\d+\.\d+' | tail -1)
+          echo "Coverage: $COVERAGE%"
+          awk -v cov="$COVERAGE" 'BEGIN { if (cov+0 <= 25.02) { print "FAIL: coverage " cov "% <= 25.02% baseline"; exit 1 } else { print "PASS: coverage " cov "% > 25.02% baseline" } }'
+
       - name: Create Dependency Graph
         run: |
           sudo apt-get install -y graphviz
@@ -76,7 +82,7 @@ jobs:
       - name: Add Coverage Report to the Package
         run: cp -R ./coverage ./build/web/coverage
 
-      - name: Update GitHub Pages 
+      - name: Update GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

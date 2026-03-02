@@ -3,10 +3,28 @@
 
 import 'dart:math' as math;
 
-extension IntExt on double {
-  double toFixed(int? digits) => (this * math.pow(10, digits ?? 8)).round() / math.pow(10, digits ?? 8);
+extension DoubleExt on double {
+  static const int _defaultFixedDigits = 8;
+  static const int _decimalBase = 10;
+  static const double _epsilon = 1e-10;
 
-  bool isEqual(double? value) => (this - (value ?? 0)).abs() < 1e-10;
+  double toFixed(int? digits) {
+    if (!isFinite) {
+      return this;
+    }
+
+    final safeDigits = digits ?? _defaultFixedDigits;
+    final multiplier = math.pow(_decimalBase, safeDigits).toDouble();
+    final scaledValue = this * multiplier;
+
+    return scaledValue.round() / multiplier;
+  }
+
+  bool isEqual(double? value) {
+    final comparableValue = value ?? 0;
+
+    return (this - comparableValue).abs() < _epsilon;
+  }
 
   bool isNotEqual(double? value) => !isEqual(value);
 }
