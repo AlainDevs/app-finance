@@ -8,7 +8,9 @@ import 'package:app_finance/_classes/herald/app_design.dart';
 import 'package:app_finance/_classes/herald/app_purchase.dart';
 import 'package:app_finance/_classes/herald/app_start_of_month.dart';
 import 'package:app_finance/_classes/herald/app_start_of_week.dart';
+import 'package:app_finance/_classes/math/budget_prediction.dart';
 import 'package:app_finance/_classes/storage/transaction_log/abstract_storage.dart';
+import 'package:app_finance/_classes/storage/di/app_data_dependencies.dart';
 import 'package:app_finance/_configs/custom_text_theme.dart';
 import 'package:dart_class_wrapper/dart_class_wrapper.dart';
 import 'package:file/file.dart';
@@ -108,8 +110,12 @@ class PumpMain {
     );
   }
 
-  AppData getStore(AppSync appSync, bool isIntegration) {
-    final appData = AppData(appSync);
+  AppData getStore(
+    AppSync appSync,
+    bool isIntegration,
+    AppDataDependencies dependencies,
+  ) {
+    final appData = AppData(appSync, dependencies: dependencies);
     if (!isIntegration) {
       appData.isLoading = false;
     }
@@ -155,8 +161,31 @@ class PumpMain {
         ChangeNotifierProvider<AppSync>(
           create: (_) => appSync,
         ),
+        Provider<AppDataCollaboratorsFactory>(
+          create: (_) => const DefaultAppDataCollaboratorsFactory(),
+        ),
+        Provider<AppDataTransactionLogGateway>(
+          create: (_) => const TransactionLogGateway(),
+        ),
+        Provider<BudgetPrediction>(
+          create: (_) => BudgetPrediction(),
+        ),
+        ProxyProvider3<BudgetPrediction, AppDataTransactionLogGateway, AppDataCollaboratorsFactory,
+            AppDataDependencies>(
+          update: (_, prediction, transactionLog, collaboratorsFactory, __) {
+            return AppDataDependencies(
+              prediction: prediction,
+              transactionLog: transactionLog,
+              collaboratorsFactory: collaboratorsFactory,
+            );
+          },
+        ),
         ChangeNotifierProvider<AppData>(
-          create: (_) => getStore(appSync, isIntegration),
+          create: (context) => getStore(
+            appSync,
+            isIntegration,
+            context.read<AppDataDependencies>(),
+          ),
         ),
         ChangeNotifierProvider<AppTheme>(
           create: (_) => AppTheme(ThemeMode.system),

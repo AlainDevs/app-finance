@@ -1,41 +1,31 @@
 // Copyright 2023 The terCAD team. All rights reserved.
 // Use of this source code is governed by a CC BY-NC-ND 4.0 license that can be found in the LICENSE file.
 
+// ignore_for_file: type=lint
+
+export 'package:app_finance/_classes/storage/app_data_type.dart';
+
 import 'dart:collection';
 import 'package:app_finance/_classes/controller/iterator_controller.dart';
 import 'package:app_finance/_classes/herald/app_start_of_month.dart';
 import 'package:app_finance/_classes/herald/app_sync.dart';
 import 'package:app_finance/_classes/math/budget_prediction.dart';
-import 'package:app_finance/_classes/math/goal_recalculation.dart';
-import 'package:app_finance/_classes/math/invoice_recalculation.dart';
 import 'package:app_finance/_classes/storage/history_data.dart';
+import 'package:app_finance/_classes/storage/app_data_store.dart';
+import 'package:app_finance/_classes/storage/di/app_data_dependencies.dart';
+import 'package:app_finance/_classes/storage/app_data_type.dart';
 import 'package:app_finance/_classes/structure/account_app_data.dart';
 import 'package:app_finance/_classes/structure/bill_app_data.dart';
-import 'package:app_finance/_classes/math/bill_recalculation.dart';
 import 'package:app_finance/_classes/structure/budget_app_data.dart';
-import 'package:app_finance/_classes/math/budget_recalculation.dart';
 import 'package:app_finance/_classes/structure/currency_app_data.dart';
-import 'package:app_finance/_classes/structure/currency/exchange.dart';
 import 'package:app_finance/_classes/structure/goal_app_data.dart';
 import 'package:app_finance/_classes/structure/interface_app_data.dart';
 import 'package:app_finance/_classes/structure/invoice_app_data.dart';
 import 'package:app_finance/_classes/structure/payment_app_data.dart';
 import 'package:app_finance/_classes/structure/summary_app_data.dart';
-import 'package:app_finance/_classes/math/total_recalculation.dart';
-import 'package:app_finance/_classes/storage/transaction_log.dart';
 import 'package:app_finance/_ext/iterable_ext.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
-
-enum AppDataType {
-  goals,
-  bills,
-  accounts,
-  budgets,
-  currencies,
-  invoice,
-  payments,
-}
 
 typedef AppDataGetter = ({
   List<dynamic> list,
@@ -43,21 +33,32 @@ typedef AppDataGetter = ({
   InterfaceIterator stream,
 });
 
-class AppData extends ChangeNotifier {
+class AppData extends ChangeNotifier implements AppDataStore, AppDataExchangeStore {
   final AppSync appSync;
+  final AppDataDependencies _dependencies;
   bool isLoading = false;
   final _hashTable = HashMap<String, dynamic>();
   final _data = <AppDataType, SummaryAppData>{};
-  final prediction = BudgetPrediction();
+  BudgetPrediction get prediction => _dependencies.prediction;
 
-  AppData(this.appSync) : super() {
+  @override
+  AppDataExchangeStore get exchangeStore => this;
+
+  AppData(
+    this.appSync, {
+    required AppDataDependencies dependencies,
+  })  : _dependencies = dependencies,
+        super() {
     isLoading = true;
     int startingDay = AppStartOfMonth.get();
     for (var key in AppDataType.values) {
       _data[key] = SummaryAppData(startingDay: startingDay);
     }
-    Exchange(store: this).getDefaultCurrency();
-    TransactionLog.load(this).then((_) async => await restate()).then((_) => appSync.follow(AppData, _stream));
+    _dependencies.collaboratorsFactory.createExchange(this).getDefaultCurrency();
+    _dependencies.transactionLog
+        .load(this)
+        .then((_) async => await restate())
+        .then((_) => appSync.follow(AppData, _stream));
   }
 
   @override
@@ -68,7 +69,7 @@ class AppData extends ChangeNotifier {
 
   void _stream(String value) {
     try {
-      TransactionLog.add(this, value, true, true);
+      _dependencies.transactionLog.add(this, value, true, true);
     } catch (e) {
       //...
     }
@@ -79,7 +80,7 @@ class AppData extends ChangeNotifier {
     int startingDay = AppStartOfMonth.get();
     _hashTable.clear();
     _data.updateAll((key, value) => SummaryAppData(startingDay: startingDay));
-    await TransactionLog.load(this);
+    await _dependencies.transactionLog.load(this);
     await restate();
   }
 
@@ -93,7 +94,7 @@ class AppData extends ChangeNotifier {
     _hashTable[value.uuid] = value;
     _data[property]?.add(value.uuid, updatedAt: value.createdAt);
     if (!isLoading) {
-      TransactionLog.save(value);
+      _dependencies.transactionLog.save(value);
       appSync.send(value.toStream());
     }
     _notify();
@@ -105,12 +106,15 @@ class AppData extends ChangeNotifier {
     }
   }
 
+  @override
   dynamic add(InterfaceAppData value, [String? uuid]) {
     value.uuid = uuid ?? const Uuid().v4();
     _update(null, value);
+
     return getByUuid(value.uuid!);
   }
 
+  @override
   void update(String uuid, InterfaceAppData value, [bool createIfMissing = false]) {
     var initial = getByUuid(uuid, false);
     if (initial != null || createIfMissing) {
@@ -120,8 +124,8 @@ class AppData extends ChangeNotifier {
 
   Future<void> updateTotals(List<AppDataType> scope) async {
     final accountTotal = getTotal(AppDataType.accounts);
-    final exchange = Exchange(store: this);
-    final rec = TotalRecalculation(exchange: exchange);
+    final exchange = _dependencies.collaboratorsFactory.createExchange(this);
+    final rec = _dependencies.collaboratorsFactory.createTotalRecalculation(exchange);
     for (AppDataType type in scope) {
       await rec.updateTotal(type, _data[type], _hashTable);
     }
@@ -174,7 +178,8 @@ class AppData extends ChangeNotifier {
       }
     }
     if (currAccount != null) {
-      final rec = InvoiceRecalculation(change, initial)..exchange = Exchange(store: this);
+      final rec = _dependencies.collaboratorsFactory.createInvoiceRecalculation(change, initial)
+        ..exchange = _dependencies.collaboratorsFactory.createExchange(this);
       rec.updateAccount(currAccount, prevAccount);
       _data[AppDataType.accounts]?.add(change.account);
       if (change.accountFrom != null) {
@@ -200,7 +205,7 @@ class AppData extends ChangeNotifier {
     AccountAppData? prevAccount;
     BudgetAppData? currBudget = getByUuid(change.category, false);
     BudgetAppData? prevBudget;
-    final exchange = Exchange(store: this);
+    final exchange = _dependencies.collaboratorsFactory.createExchange(this);
     change.exchangeAccount = exchange.reform(1.0, change.currency, currAccount?.currency);
     change.exchangeCategory = exchange.reform(1.0, change.currency, currBudget?.currency);
     if (initial != null) {
@@ -214,7 +219,8 @@ class AppData extends ChangeNotifier {
       }
     }
     prediction.add(change);
-    final rec = BillRecalculation(change: change, initial: initial)..exchange = exchange;
+    final rec = _dependencies.collaboratorsFactory.createBillRecalculation(change: change, initial: initial)
+      ..exchange = exchange;
     if (currAccount != null) {
       rec.updateAccount(currAccount, prevAccount);
       _data[AppDataType.accounts]?.add(change.account);
@@ -230,8 +236,8 @@ class AppData extends ChangeNotifier {
   }
 
   void _updateBudget(BudgetAppData? initial, BudgetAppData change) {
-    BudgetRecalculation(change: change, initial: initial)
-      ..exchange = Exchange(store: this)
+    _dependencies.collaboratorsFactory.createBudgetRecalculation(change: change, initial: initial)
+      ..exchange = _dependencies.collaboratorsFactory.createExchange(this)
       ..updateBudget();
     _set(AppDataType.budgets, change);
     if (!isLoading) {
@@ -240,8 +246,8 @@ class AppData extends ChangeNotifier {
   }
 
   void _updateGoal(GoalAppData? initial, GoalAppData change) {
-    GoalRecalculation(change: change, initial: initial)
-      ..exchange = Exchange(store: this)
+    _dependencies.collaboratorsFactory.createGoalRecalculation(change: change, initial: initial)
+      ..exchange = _dependencies.collaboratorsFactory.createExchange(this)
       ..updateGoal();
     _set(AppDataType.goals, change);
     if (!isLoading) {
@@ -268,6 +274,7 @@ class AppData extends ChangeNotifier {
     );
   }
 
+  @override
   List<dynamic> getList(AppDataType property, [bool isClone = true]) {
     return (_data[property]?.list ?? [])
         .map((uuid) => getByUuid(uuid, isClone))
@@ -275,11 +282,13 @@ class AppData extends ChangeNotifier {
         .toList();
   }
 
+  @override
   InterfaceIterator getStream<M extends InterfaceAppData>(AppDataType property,
       {bool inverse = true, double? boundary, Function? filter}) {
     if (_data[property] == null) {
       return IteratorController<num, dynamic, M>(SplayTreeMap<num, dynamic>(), transform: getByUuid);
     }
+
     return _data[property]!.origin.toStream<M>(
           inverse,
           transform: getByUuid,
@@ -288,6 +297,7 @@ class AppData extends ChangeNotifier {
         );
   }
 
+  @override
   List<dynamic> getActualList(AppDataType property, [bool isClone = true]) {
     return (_data[property]?.listActual ?? [])
         .map((uuid) => getByUuid(uuid, isClone))
@@ -295,16 +305,20 @@ class AppData extends ChangeNotifier {
         .toList();
   }
 
+  @override
   double getTotal(AppDataType property) {
     return _data[property]?.total ?? 0.0;
   }
 
+  @override
   dynamic getByUuid(String uuid, [bool isClone = true]) {
     if (uuid == '') return null;
+
     var obj = isClone ? _hashTable[uuid]?.clone() : _hashTable[uuid];
     if (obj is BillAppData || obj is BudgetAppData || obj is InvoiceAppData) {
       obj.setState(this);
     }
+
     return obj;
   }
 }

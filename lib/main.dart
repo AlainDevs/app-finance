@@ -14,7 +14,9 @@ import 'package:app_finance/_classes/herald/app_sync.dart';
 import 'package:app_finance/_classes/herald/app_theme.dart';
 import 'package:app_finance/_classes/herald/app_start_of_week.dart';
 import 'package:app_finance/_classes/herald/app_zoom.dart';
+import 'package:app_finance/_classes/math/budget_prediction.dart';
 import 'package:app_finance/_classes/storage/app_preferences.dart';
+import 'package:app_finance/_classes/storage/di/app_data_dependencies.dart';
 import 'package:app_finance/_classes/structure/navigation/app_page_route.dart';
 import 'package:app_finance/_configs/custom_color_scheme.dart';
 import 'package:app_finance/_configs/custom_text_theme.dart';
@@ -66,31 +68,30 @@ import 'package:flutter_currency_picker/flutter_currency_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-void main() async {
+void main() {
   final platform = DefaultFirebaseOptions.currentPlatform;
   runZonedGuarded<Future<void>>(() async {
     WidgetsFlutterBinding.ensureInitialized();
     if (platform != null) {
-      await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform);
+      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
       FirebaseAnalytics.instance.logAppOpen();
       PlatformDispatcher.instance.onError = (error, stack) {
         FirebaseAnalytics.instance.logEvent(
           name: 'platform-error',
           parameters: {'error': error.toString(), 'trace': stack.toString()},
         );
+
         return true;
       };
-      if (kIsWeb) {
-        FlutterError.onError = (details) {
-          FlutterError.presentError(details);
-          FirebaseAnalytics.instance.logEvent(
-              name: 'flutter-error', parameters: {'error': details.toString()});
-        };
-      } else {
-        FlutterError.onError =
-            FirebaseCrashlytics.instance.recordFlutterFatalError;
-      }
+      FlutterError.onError = kIsWeb
+          ? (details) {
+              FlutterError.presentError(details);
+              FirebaseAnalytics.instance.logEvent(
+                name: 'flutter-error',
+                parameters: {'error': details.toString()},
+              );
+            }
+          : FirebaseCrashlytics.instance.recordFlutterFatalError;
     }
     AppPreferences.pref = await SharedPreferences.getInstance();
     await EncryptionHandler.initialize();
@@ -102,8 +103,30 @@ void main() async {
           ChangeNotifierProvider<AppSync>(
             create: (_) => appSync,
           ),
+          Provider<AppDataCollaboratorsFactory>(
+            create: (_) => const DefaultAppDataCollaboratorsFactory(),
+          ),
+          Provider<AppDataTransactionLogGateway>(
+            create: (_) => const TransactionLogGateway(),
+          ),
+          Provider<BudgetPrediction>(
+            create: (_) => BudgetPrediction(),
+          ),
+          ProxyProvider3<BudgetPrediction, AppDataTransactionLogGateway, AppDataCollaboratorsFactory,
+              AppDataDependencies>(
+            update: (_, prediction, transactionLog, collaboratorsFactory, __) {
+              return AppDataDependencies(
+                prediction: prediction,
+                transactionLog: transactionLog,
+                collaboratorsFactory: collaboratorsFactory,
+              );
+            },
+          ),
           ChangeNotifierProvider<AppData>(
-            create: (_) => AppData(appSync),
+            create: (context) => AppData(
+              appSync,
+              dependencies: context.read<AppDataDependencies>(),
+            ),
           ),
           ChangeNotifierProvider<AppTheme>(
             create: (_) => AppTheme(ThemeMode.system),
@@ -136,96 +159,100 @@ void main() async {
   }, (error, stack) {
     if (platform != null) {
       if (kIsWeb) {
-        FirebaseAnalytics.instance.logEvent(
-            name: 'flutter-error', parameters: {'error': error.toString()});
+        FirebaseAnalytics.instance.logEvent(name: 'flutter-error', parameters: {'error': error.toString()});
       } else {
         FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
       }
     }
-    FlutterError.presentError(
-        FlutterErrorDetails(exception: error, stack: stack));
-    // SystemNavigator.pop();
+    FlutterError.presentError(FlutterErrorDetails(exception: error, stack: stack));
   });
 }
 
-class MyApp extends StatefulWidget {
-  final FirebaseOptions? platform;
+class MyApp extends StatelessWidget {
   const MyApp({super.key, this.platform});
 
-  @override
-  MyAppState createState() => MyAppState();
-}
+  final FirebaseOptions? platform;
 
-class MyAppState extends State<MyApp> {
-  WidgetBuilder? getPage(String route, Object? arguments) {
+  WidgetBuilder? _getPage(String route, Object? arguments) {
     AppRoute.current = route;
     final args = arguments as Map<String, dynamic>?;
     final String key = args?['uuid'] ?? args?['search'] ?? '';
     final int focus = args?['focus'] ?? 1;
-    if (widget.platform != null) {
+    final screenParameters = args?.map<String, Object>((k, v) {
+      return MapEntry(k, v ?? '');
+    });
+    if (platform != null) {
       FirebaseAnalytics.instance.logScreenView(
         screenName: route,
-        parameters: args?.cast(),
+        parameters: screenParameters,
       );
     }
 
-    Widget router(String route) => switch (route) {
-          AppRoute.aboutRoute => AboutPage(search: key),
-          AppRoute.accountRoute => const AccountPage(),
-          AppRoute.accountAddRoute => const AccountAddPage(),
-          AppRoute.accountViewRoute => AccountViewPage(uuid: key),
-          AppRoute.accountSearchRoute => AccountPage(search: key),
-          AppRoute.accountEditRoute => AccountEditPage(uuid: key),
-          AppRoute.automationRoute => const AutomationPage(),
-          AppRoute.automationPaymentRoute => const PaymentAddPage(),
-          AppRoute.automationPaymentViewRoute => PaymentViewPage(uuid: key),
-          AppRoute.automationPaymentEditRoute => PaymentEditPage(uuid: key),
-          AppRoute.billRoute => const BillPage(),
-          AppRoute.billAddRoute => BillAddPage(focus: focus),
-          AppRoute.billViewRoute => BillViewPage(uuid: key),
-          AppRoute.billEditRoute => BillEditPage(uuid: key),
-          AppRoute.billSearchRoute => BillSearchPage(),
-          AppRoute.budgetRoute => const BudgetPage(),
-          AppRoute.budgetAddRoute => const BudgetAddPage(),
-          AppRoute.budgetViewRoute => BudgetViewPage(uuid: key),
-          AppRoute.budgetSearchRoute => BudgetPage(search: key),
-          AppRoute.budgetEditRoute => BudgetEditPage(uuid: key),
-          AppRoute.currencyRoute => const CurrencyPage(),
-          AppRoute.currencyAddRoute => const CurrencyAddPage(),
-          AppRoute.goalRoute => const GoalPage(),
-          AppRoute.goalAddRoute => const GoalAddPage(),
-          AppRoute.goalViewRoute => GoalViewPage(uuid: key),
-          AppRoute.goalEditRoute => GoalEditPage(uuid: key),
-          AppRoute.invoiceRoute => InvoicePage(),
-          AppRoute.invoiceViewRoute => InvoiceViewPage(uuid: key),
-          AppRoute.invoiceEditRoute => InvoiceEditPage(uuid: key),
-          AppRoute.invoiceSearchRoute => InvoiceSearchPage(),
-          AppRoute.invoiceTransferRoute => InvoiceTransferPage(),
-          AppRoute.invoiceTransferSearchRoute => InvoiceTransferSearchPage(),
-          AppRoute.homeRoute => const HomePage(),
-          AppRoute.metricsRoute => const MetricsPage(),
-          AppRoute.metricsSearchRoute => MetricsPage(search: key),
-          AppRoute.settingsRoute => const SettingsPage(),
-          AppRoute.startRoute => const StartPage(),
-          AppRoute.subscriptionRoute => const SubscriptionPage(),
-          _ => const HomePage(),
-        };
     return (_) => Directionality(
           textDirection: TextDirection.ltr,
-          child: router(route),
+          child: switch (route) {
+            AppRoute.aboutRoute => AboutPage(search: key),
+            AppRoute.accountRoute => const AccountPage(),
+            AppRoute.accountAddRoute => const AccountAddPage(),
+            AppRoute.accountViewRoute => AccountViewPage(uuid: key),
+            AppRoute.accountSearchRoute => AccountPage(search: key),
+            AppRoute.accountEditRoute => AccountEditPage(uuid: key),
+            AppRoute.automationRoute => const AutomationPage(),
+            AppRoute.automationPaymentRoute => const PaymentAddPage(),
+            AppRoute.automationPaymentViewRoute => PaymentViewPage(uuid: key),
+            AppRoute.automationPaymentEditRoute => PaymentEditPage(uuid: key),
+            AppRoute.billRoute => const BillPage(),
+            AppRoute.billAddRoute => BillAddPage(focus: focus),
+            AppRoute.billViewRoute => BillViewPage(uuid: key),
+            AppRoute.billEditRoute => BillEditPage(uuid: key),
+            AppRoute.billSearchRoute => BillSearchPage(),
+            AppRoute.budgetRoute => const BudgetPage(),
+            AppRoute.budgetAddRoute => const BudgetAddPage(),
+            AppRoute.budgetViewRoute => BudgetViewPage(uuid: key),
+            AppRoute.budgetSearchRoute => BudgetPage(search: key),
+            AppRoute.budgetEditRoute => BudgetEditPage(uuid: key),
+            AppRoute.currencyRoute => const CurrencyPage(),
+            AppRoute.currencyAddRoute => const CurrencyAddPage(),
+            AppRoute.goalRoute => const GoalPage(),
+            AppRoute.goalAddRoute => const GoalAddPage(),
+            AppRoute.goalViewRoute => GoalViewPage(uuid: key),
+            AppRoute.goalEditRoute => GoalEditPage(uuid: key),
+            AppRoute.invoiceRoute => InvoicePage(),
+            AppRoute.invoiceViewRoute => InvoiceViewPage(uuid: key),
+            AppRoute.invoiceEditRoute => InvoiceEditPage(uuid: key),
+            AppRoute.invoiceSearchRoute => InvoiceSearchPage(),
+            AppRoute.invoiceTransferRoute => InvoiceTransferPage(),
+            AppRoute.invoiceTransferSearchRoute => InvoiceTransferSearchPage(),
+            AppRoute.homeRoute => const HomePage(),
+            AppRoute.metricsRoute => const MetricsPage(),
+            AppRoute.metricsSearchRoute => MetricsPage(search: key),
+            AppRoute.settingsRoute => const SettingsPage(),
+            AppRoute.startRoute => const StartPage(),
+            AppRoute.subscriptionRoute => const SubscriptionPage(),
+            _ => const HomePage(),
+          },
         );
+  }
+
+  Route<Widget>? _onGenerateRoute(RouteSettings settings) {
+    final builder = _getPage(settings.name ?? '', settings.arguments);
+
+    return AppPageRoute(
+      builder: builder ?? (_) => const HomePage(),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final palette = context.watch<AppPalette>().value;
-    final text =
-        Theme.of(context).textTheme.withCustom(palette, Brightness.light);
-    final textDark =
-        Theme.of(context).textTheme.withCustom(palette, Brightness.dark);
-    final sheet = Theme.of(context).bottomSheetTheme.copyWith(
-          constraints: const BoxConstraints(maxWidth: double.infinity),
-        );
+    final textTheme = theme.textTheme;
+    final text = textTheme.withCustom(palette, Brightness.light);
+    final textDark = textTheme.withCustom(palette, Brightness.dark);
+    final sheet = theme.bottomSheetTheme.copyWith(
+      constraints: const BoxConstraints(maxWidth: double.infinity),
+    );
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       localizationsDelegates: [
@@ -236,28 +263,22 @@ class MyAppState extends State<MyApp> {
       locale: context.watch<AppLocale>().value,
       theme: ThemeData(
         colorScheme: const ColorScheme.light().withCustom(palette),
-        floatingActionButtonTheme: const FloatingActionButtonThemeData()
-            .withCustom(palette, Brightness.light),
+        floatingActionButtonTheme: const FloatingActionButtonThemeData().withCustom(palette, Brightness.light),
         brightness: Brightness.light,
         textTheme: text,
-        datePickerTheme: DatePickerTheme.of(context)
-            .withCustom(palette, text, Brightness.light),
-        timePickerTheme: TimePickerTheme.of(context)
-            .withCustom(palette, text, Brightness.light),
+        datePickerTheme: DatePickerTheme.of(context).withCustom(palette, text, Brightness.light),
+        timePickerTheme: TimePickerTheme.of(context).withCustom(palette, text, Brightness.light),
         dividerTheme: CustomDividerTheme(palette, Brightness.light),
         bottomSheetTheme: sheet,
         useMaterial3: true,
       ),
       darkTheme: ThemeData(
         colorScheme: const ColorScheme.dark().withCustom(palette),
-        floatingActionButtonTheme: const FloatingActionButtonThemeData()
-            .withCustom(palette, Brightness.dark),
+        floatingActionButtonTheme: const FloatingActionButtonThemeData().withCustom(palette, Brightness.dark),
         brightness: Brightness.dark,
         textTheme: textDark,
-        datePickerTheme: DatePickerTheme.of(context)
-            .withCustom(palette, textDark, Brightness.dark),
-        timePickerTheme: TimePickerTheme.of(context)
-            .withCustom(palette, textDark, Brightness.dark),
+        datePickerTheme: DatePickerTheme.of(context).withCustom(palette, textDark, Brightness.dark),
+        timePickerTheme: TimePickerTheme.of(context).withCustom(palette, textDark, Brightness.dark),
         dividerTheme: CustomDividerTheme(palette, Brightness.dark),
         bottomSheetTheme: sheet,
         useMaterial3: true,
@@ -267,8 +288,7 @@ class MyAppState extends State<MyApp> {
         textDirection: TextDirection.ltr,
         child: HomePage(),
       ),
-      onGenerateRoute: (settings) => AppPageRoute(
-          builder: getPage(settings.name ?? '', settings.arguments)!),
+      onGenerateRoute: _onGenerateRoute,
     );
   }
 }
