@@ -10,59 +10,68 @@ permissions:
 
 jobs:
   e2e-reliability:
-    name: E2E Reliability (${{ matrix.lane }})
+    name: E2E Reliability (${{ matrix.lane }} #${{ matrix.iteration }})
     runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
-        lane: [stable, quarantine]
+        include:
+          - lane: stable
+            iteration: 1
+          - lane: stable
+            iteration: 2
+          - lane: stable
+            iteration: 3
+          - lane: quarantine
+            iteration: 1
     continue-on-error: ${{ matrix.lane == 'quarantine' }}
 
     steps:
       - uses: actions/checkout@v4
+        if: ${{ env.ACT != 'true' || matrix.iteration == 1 }}
 
       - uses: subosito/flutter-action@v2
+        if: ${{ env.ACT != 'true' || matrix.iteration == 1 }}
         with:
           channel: stable
           architecture: x64
           cache: true
 
       - name: Install dependencies
+        if: ${{ env.ACT != 'true' || matrix.iteration == 1 }}
         run: flutter pub get
 
-      - name: Execute stable E2E suite 3x consecutively (required)
-        if: matrix.lane == 'stable'
+      - name: Execute stable E2E suite (required)
+        if: ${{ matrix.lane == 'stable' && (env.ACT != 'true' || matrix.iteration == 1) }}
         shell: bash
         run: |
           set -euo pipefail
 
-          log_dir="coverage/reliability/stable"
+          run="${{ matrix.iteration }}"
+          log_dir="coverage/reliability/stable/run_${run}"
           mkdir -p "${log_dir}"
 
-          for run in 1 2 3; do
-            echo "=== Stable E2E run ${run}/3 ===" | tee "${log_dir}/run_${run}_header.log"
+          echo "=== Stable E2E run ${run}/3 ===" | tee "${log_dir}/run_header.log"
 
-            dart run grinder full-coverage --path="" --type=e2e \
-              2>&1 | tee "${log_dir}/run_${run}_prepare.log"
+          dart run grinder full-coverage --path="" --type=e2e \
+            2>&1 | tee "${log_dir}/prepare.log"
 
-            dart run grinder test --coverage --path=test/e2e \
-              2>&1 | tee "${log_dir}/run_${run}.log"
+          dart run grinder test --coverage --path=test/e2e \
+            2>&1 | tee "${log_dir}/run.log"
 
-            dart run test_cov_console --file="./coverage/lcov.info" --total \
-              | tr -d '[:space:]' \
-              | tee "${log_dir}/test_total_run_${run}.log"
-          done
-
-          cp "${log_dir}/test_total_run_3.log" "${log_dir}/test_total.log"
+          dart run test_cov_console --file="./coverage/lcov.info" --total \
+            | tr -d '[:space:]' \
+            | tee "${log_dir}/test_total.log"
 
       - name: Execute quarantined non-deterministic test (non-blocking)
-        if: matrix.lane == 'quarantine'
+        if: ${{ matrix.lane == 'quarantine' && (env.ACT != 'true' || matrix.iteration == 1) }}
         shell: bash
         run: |
           set -euo pipefail
 
-          log_dir="coverage/reliability/quarantine"
+          run="${{ matrix.iteration }}"
+          log_dir="coverage/reliability/quarantine/run_${run}"
           mkdir -p "${log_dir}"
 
           flutter config --enable-web
@@ -74,11 +83,18 @@ jobs:
           for _ in {1..30}; do
             if curl --silent --show-error --fail \
               "http://127.0.0.1:4444/status" > /dev/null; then
+              chromedriver_ready=true
               break
             fi
 
             sleep 1
           done
+
+          if [[ "${chromedriver_ready:-false}" != "true" ]]; then
+            echo "Chromedriver failed to become ready on :4444" \
+              | tee "${log_dir}/run_1.log"
+            exit 1
+          fi
 
           cleanup() {
             if kill -0 "${chromedriver_pid}" 2>/dev/null; then
@@ -88,7 +104,8 @@ jobs:
           }
           trap cleanup EXIT
 
-          CHROME_NO_SANDBOX=true \
+          timeout --signal=TERM --kill-after=30s 8m \
+            env CHROME_NO_SANDBOX=true \
             xvfb-run --auto-servernum \
               --server-args="-screen 0 1920x1080x24" \
               flutter drive \
@@ -97,15 +114,15 @@ jobs:
                 -d chrome \
                 --headless \
                 --no-dds \
-                2>&1 | tee "${log_dir}/run_1.log"
+            2>&1 | tee "${log_dir}/run_1.log"
 
           echo "N/A (quarantine lane via flutter drive; no lcov total generated)" \
             > "${log_dir}/test_total.log"
 
       - name: Upload reliability logs
-        if: always()
+        if: ${{ always() && env.ACT != 'true' }}
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-reliability-logs-${{ matrix.lane }}
-          path: coverage/reliability/${{ matrix.lane }}
+          name: e2e-reliability-logs-${{ matrix.lane }}-run-${{ matrix.iteration }}
+          path: coverage/reliability/${{ matrix.lane }}/run_${{ matrix.iteration }}
           if-no-files-found: warn
