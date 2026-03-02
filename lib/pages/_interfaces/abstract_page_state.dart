@@ -8,6 +8,7 @@ import 'package:app_finance/_classes/structure/navigation/app_menu.dart';
 import 'package:app_finance/_classes/storage/app_data.dart';
 import 'package:app_finance/_classes/structure/navigation/app_route.dart';
 import 'package:app_finance/_configs/screen_helper.dart';
+import 'package:app_finance/_configs/test_keys.dart';
 import 'package:app_finance/_configs/theme_helper.dart';
 import 'package:app_finance/_ext/build_context_ext.dart';
 import 'package:app_finance/design/wrapper/markdown_builder_wrapper.dart';
@@ -104,6 +105,7 @@ abstract class AbstractPageState<T extends StatefulWidget> extends State<T> {
           builder: (context) {
             final scaffold = Scaffold.of(context);
             return ToolbarButtonWidget(
+              key: TestKeys.openMainMenuButton,
               icon: Icons.menu,
               color: Colors.white70,
               tooltip: AppLocale.labels.navigationTooltip,

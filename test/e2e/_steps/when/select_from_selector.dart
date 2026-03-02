@@ -2,7 +2,7 @@
 // Use of this source code is governed by a CC BY-NC-ND 4.0 license that can be found in the LICENSE file.
 
 import 'package:flutter_test/flutter_test.dart';
-// ignore: depend_on_referenced_packages
+// ignore: depend_on_referenced_packages, because of the gherkin package
 import 'package:gherkin/gherkin.dart';
 
 import 'enter_text_field.dart';

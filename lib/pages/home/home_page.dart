@@ -11,6 +11,7 @@ import 'package:app_finance/_classes/storage/app_preferences.dart';
 import 'package:app_finance/_configs/screen_helper.dart';
 import 'package:app_finance/_configs/theme_helper.dart';
 import 'package:app_finance/_classes/structure/navigation/app_route.dart';
+import 'package:app_finance/_configs/test_keys.dart';
 import 'package:app_finance/_ext/date_time_ext.dart';
 import 'package:app_finance/components/_core/components_builder.dart';
 import 'package:app_finance/components/widgets/account_flow_chart.dart';
@@ -102,6 +103,7 @@ class HomePageState extends AbstractPageState<HomePage> {
       builder: (BuildContext context) {
         final scaffold = Scaffold.of(context);
         return ToolbarButtonWidget(
+          key: TestKeys.openMainMenuButton,
           icon: Icons.menu,
           color: Colors.white70,
           tooltip: AppLocale.labels.navigationTooltip,
@@ -150,6 +152,7 @@ class HomePageState extends AbstractPageState<HomePage> {
   Widget buildButton(BuildContext context, BoxConstraints constraints) {
     NavigatorState nav = Navigator.of(context);
     return FloatingActionButton(
+      key: TestKeys.homeAddBillButton,
       heroTag: 'home_page',
       mini: ThemeHelper.isWearable,
       onPressed: () => nav.pushNamed(AppRoute.billAddRoute),

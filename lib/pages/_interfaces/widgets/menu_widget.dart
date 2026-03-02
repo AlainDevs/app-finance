@@ -5,6 +5,7 @@ import 'package:app_finance/_classes/herald/app_design.dart';
 import 'package:app_finance/_classes/structure/navigation/app_menu.dart';
 import 'package:app_finance/_classes/structure/navigation/app_menu_item.dart';
 import 'package:app_finance/_configs/screen_helper.dart';
+import 'package:app_finance/_configs/test_keys.dart';
 import 'package:app_finance/_configs/theme_helper.dart';
 import 'package:app_finance/_ext/build_context_ext.dart';
 import 'package:app_finance/design/wrapper/text_wrapper.dart';
@@ -47,6 +48,7 @@ class MenuWidget extends StatelessWidget {
     NavigatorState nav = Navigator.of(context);
 
     return InkWell(
+      key: TestKeys.menuItem(menu.route),
       onTap: () => _navigateToPage(nav, menu.route),
       focusNode: isSelected && !isWide ? (focus..requestFocus()) : focus,
       onHover: _onHover,

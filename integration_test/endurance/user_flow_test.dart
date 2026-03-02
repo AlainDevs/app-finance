@@ -7,6 +7,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:app_finance/_classes/storage/app_preferences.dart';
+import 'package:app_finance/_configs/test_keys.dart';
 import 'package:flutter_gherkin_wrapper/flutter_gherkin_wrapper.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -48,7 +49,7 @@ void main() {
   Future<void> firstRun(WidgetTester tester) async {
     FileRunner.tester = tester;
     await FirstRun().executeStep();
-    expect(find.text('Initial Setup'), findsOneWidget);
+    expect(find.byKey(TestKeys.startPage), findsOneWidget);
   }
 
   Future<void> createAccount(WidgetTester tester, int counter) async {
@@ -104,11 +105,11 @@ void main() {
     final random = Random();
     while (duration.inMinutes < 0) {
       if (random.nextDouble() <= 0.05) await createAccount(tester, idx);
-      await FileRunner.tester.pumpAndSettle(const Duration(seconds: 5));
+      await FileRunner.tester.pumpAndSettle();
       if (random.nextDouble() <= 0.10) await createBudget(tester, idx);
-      await FileRunner.tester.pumpAndSettle(const Duration(seconds: 5));
+      await FileRunner.tester.pumpAndSettle();
       if (random.nextDouble() <= 0.90) await createBill(tester, idx);
-      await FileRunner.tester.pumpAndSettle(const Duration(seconds: 5));
+      await FileRunner.tester.pumpAndSettle();
       final endTime = DateTime.now();
       duration = endTime.difference(startTime);
       idx++;

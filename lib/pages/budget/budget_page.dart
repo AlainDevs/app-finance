@@ -7,6 +7,7 @@ import 'package:app_finance/_classes/herald/app_locale.dart';
 import 'package:app_finance/_classes/structure/budget_app_data.dart';
 import 'package:app_finance/_classes/structure/currency/exchange.dart';
 import 'package:app_finance/_configs/design_type.dart';
+import 'package:app_finance/_configs/test_keys.dart';
 import 'package:app_finance/_configs/theme_helper.dart';
 import 'package:app_finance/_classes/structure/navigation/app_route.dart';
 import 'package:app_finance/design/generic/base_header_widget.dart';
@@ -61,6 +62,7 @@ class BudgetPageState extends AbstractPageState<BudgetPage> {
   Widget buildButton(BuildContext context, BoxConstraints constraints) {
     NavigatorState nav = Navigator.of(context);
     return FloatingActionButton(
+      key: TestKeys.budgetAddButton,
       heroTag: 'budget_page',
       onPressed: () => nav.pushNamed(AppRoute.budgetAddRoute),
       tooltip: getButtonName(),

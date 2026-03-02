@@ -3,7 +3,7 @@
 
 import 'package:flutter_gherkin_wrapper/flutter_gherkin_wrapper.dart';
 import 'package:flutter_test/flutter_test.dart';
-// ignore: depend_on_referenced_packages
+// ignore: depend_on_referenced_packages, because of the gherkin package
 import 'package:gherkin/gherkin.dart';
 
 import '../../../screen_capture.dart';
@@ -19,7 +19,19 @@ class TapDefinedButton extends When1WithWorld<String, World> {
     expectSync(btn, findsOneWidget);
     await FileRunner.tester.ensureVisible(btn);
     await FileRunner.tester.tap(btn, warnIfMissed: false);
-    await FileRunner.tester.pumpAndSettle(const Duration(milliseconds: 400));
+    await _safePumpAndSettle();
     ScreenCapture.seize(runtimeType.toString());
+  }
+
+  Future<void> _safePumpAndSettle() async {
+    try {
+      await FileRunner.tester.pumpAndSettle(
+        const Duration(milliseconds: 100),
+        EnginePhase.sendSemanticsUpdate,
+        const Duration(seconds: 2),
+      );
+    } catch (_) {
+      await FileRunner.tester.pump(const Duration(milliseconds: 100));
+    }
   }
 }

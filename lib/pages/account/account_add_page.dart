@@ -7,6 +7,7 @@ import 'package:app_finance/_classes/structure/account_app_data.dart';
 import 'package:app_finance/_configs/account_type.dart';
 import 'package:app_finance/_classes/controller/focus_controller.dart';
 import 'package:app_finance/_classes/storage/app_preferences.dart';
+import 'package:app_finance/_configs/test_keys.dart';
 import 'package:app_finance/_configs/theme_helper.dart';
 import 'package:app_finance/_ext/build_context_ext.dart';
 import 'package:app_finance/_ext/double_ext.dart';
@@ -122,6 +123,7 @@ class AccountAddPageState<T extends AccountAddPage> extends AbstractAddPageState
   Widget buildButton(BuildContext context, BoxConstraints constraints) {
     NavigatorState nav = Navigator.of(context);
     return FullSizedButtonWidget(
+      key: TestKeys.accountCreateButton,
       constraints: constraints,
       controller: focus,
       onPressed: () => triggerActionButton(nav),
@@ -136,117 +138,123 @@ class AccountAddPageState<T extends AccountAddPage> extends AbstractAddPageState
     double indent = ThemeHelper.getIndent(2);
     double width = ThemeHelper.getWidth(context, 6, constraints);
 
-    return SingleScrollWrapper(
-      controller: focus,
-      child: Container(
-        margin: EdgeInsets.fromLTRB(indent, indent, indent, 240),
-        child: Column(
-          crossAxisAlignment: AppDesign.getAlignment(),
-          children: [
-            InputWrapper.select(
-              isRequired: true,
-              value: type,
-              title: AppLocale.labels.accountType,
-              tooltip: AppLocale.labels.accountTypeTooltip,
-              showError: hasError && type == null,
-              options: AccountType.getList(),
-              onChange: (value) => setState(() => type = value),
-            ),
-            InputWrapper.text(
-              isRequired: true,
-              controller: title,
-              title: AppLocale.labels.title,
-              tooltip: AppLocale.labels.titleAccountTooltip,
-              showError: hasError && title.text.isEmpty,
-            ),
-            RowWidget(
-              indent: indent,
-              maxWidth: width + indent,
-              chunk: const [80, 80, null],
-              children: [
-                [
-                  InputWrapper.icon(
-                    value: icon,
-                    title: AppLocale.labels.icon,
-                    onChange: (value) => setState(() => icon = value),
-                  ),
-                ],
-                [
-                  InputWrapper.color(
-                    value: color,
-                    title: AppLocale.labels.color,
-                    onChange: (value) => setState(() => color = value),
-                  ),
-                ],
-                [
-                  InputWrapper.text(
-                    controller: description,
-                    title: AppLocale.labels.details,
-                    tooltip: AppLocale.labels.detailsTooltip,
-                  ),
-                ],
-              ],
-            ),
-            InputWrapper.currency(
-              isRequired: true,
-              showError: hasError && currency == null,
-              value: currency,
-              title: AppLocale.labels.currency,
-              tooltip: AppLocale.labels.currencyTooltip,
-              onChange: (value) => setState(() => currency = value),
-            ),
-            if (!AccountType.contains(type ?? '', [AppAccountType.account, AppAccountType.cash]))
-              InputWrapper(
-                type: NamedInputType.ymSelector,
-                title: AppLocale.labels.validTillDate,
-                value: validTillDate,
-                onChange: (value) => setState(() => validTillDate = value),
+    return KeyedSubtree(
+      key: TestKeys.accountForm,
+      child: SingleScrollWrapper(
+        controller: focus,
+        child: Container(
+          margin: EdgeInsets.fromLTRB(indent, indent, indent, 240),
+          child: Column(
+            crossAxisAlignment: AppDesign.getAlignment(),
+            children: [
+              InputWrapper.select(
+                key: TestKeys.accountTypeSelector,
+                isRequired: true,
+                value: type,
+                title: AppLocale.labels.accountType,
+                tooltip: AppLocale.labels.accountTypeTooltip,
+                showError: hasError && type == null,
+                options: AccountType.getList(),
+                onChange: (value) => setState(() => type = value),
               ),
-            InputWrapper.text(
-              title: AppLocale.labels.balance,
-              tooltip: AppLocale.labels.balanceTooltip,
-              controller: balance,
-              inputType: const TextInputType.numberWithOptions(decimal: true),
-              formatter: [
-                SimpleInputFormatter.filterDouble,
-              ],
-            ),
-            RowWidget(
-              indent: indent,
-              maxWidth: width + indent,
-              chunk: const [20, null],
-              children: [
-                [Checkbox(value: skip, onChanged: (value) => setState(() => skip = value!))],
-                [ThemeHelper.hIndent05, TextWrapper(AppLocale.labels.skipFromTotals)],
-              ],
-            ),
-            ThemeHelper.hIndent2x,
-            RowWidget(
-              indent: indent,
-              maxWidth: width + indent,
-              chunk: const [null, 20],
-              children: [
-                [
-                  TextWrapper(
-                    AppLocale.labels.balanceDate,
-                    style: textTheme.bodyLarge,
-                  ),
+              InputWrapper.text(
+                key: TestKeys.accountTitleInput,
+                isRequired: true,
+                controller: title,
+                title: AppLocale.labels.title,
+                tooltip: AppLocale.labels.titleAccountTooltip,
+                showError: hasError && title.text.isEmpty,
+              ),
+              RowWidget(
+                indent: indent,
+                maxWidth: width + indent,
+                chunk: const [80, 80, null],
+                children: [
+                  [
+                    InputWrapper.icon(
+                      value: icon,
+                      title: AppLocale.labels.icon,
+                      onChange: (value) => setState(() => icon = value),
+                    ),
+                  ],
+                  [
+                    InputWrapper.color(
+                      value: color,
+                      title: AppLocale.labels.color,
+                      onChange: (value) => setState(() => color = value),
+                    ),
+                  ],
+                  [
+                    InputWrapper.text(
+                      controller: description,
+                      title: AppLocale.labels.details,
+                      tooltip: AppLocale.labels.detailsTooltip,
+                    ),
+                  ],
                 ],
-                [
-                  Tooltip(
-                    message: AppLocale.labels.balanceDateTooltip,
-                    child: const Icon(Icons.info_outline),
-                  ),
-                ]
-              ],
-            ),
-            DateTimeInput(
-              width: width,
-              value: balanceUpdateDate,
-              setState: (value) => setState(() => balanceUpdateDate = value),
-            ),
-            ThemeHelper.hIndent2x,
-          ],
+              ),
+              InputWrapper.currency(
+                isRequired: true,
+                showError: hasError && currency == null,
+                value: currency,
+                title: AppLocale.labels.currency,
+                tooltip: AppLocale.labels.currencyTooltip,
+                onChange: (value) => setState(() => currency = value),
+              ),
+              if (!AccountType.contains(type ?? '', [AppAccountType.account, AppAccountType.cash]))
+                InputWrapper(
+                  type: NamedInputType.ymSelector,
+                  title: AppLocale.labels.validTillDate,
+                  value: validTillDate,
+                  onChange: (value) => setState(() => validTillDate = value),
+                ),
+              InputWrapper.text(
+                key: TestKeys.accountBalanceInput,
+                title: AppLocale.labels.balance,
+                tooltip: AppLocale.labels.balanceTooltip,
+                controller: balance,
+                inputType: const TextInputType.numberWithOptions(decimal: true),
+                formatter: [
+                  SimpleInputFormatter.filterDouble,
+                ],
+              ),
+              RowWidget(
+                indent: indent,
+                maxWidth: width + indent,
+                chunk: const [20, null],
+                children: [
+                  [Checkbox(value: skip, onChanged: (value) => setState(() => skip = value!))],
+                  [ThemeHelper.hIndent05, TextWrapper(AppLocale.labels.skipFromTotals)],
+                ],
+              ),
+              ThemeHelper.hIndent2x,
+              RowWidget(
+                indent: indent,
+                maxWidth: width + indent,
+                chunk: const [null, 20],
+                children: [
+                  [
+                    TextWrapper(
+                      AppLocale.labels.balanceDate,
+                      style: textTheme.bodyLarge,
+                    ),
+                  ],
+                  [
+                    Tooltip(
+                      message: AppLocale.labels.balanceDateTooltip,
+                      child: const Icon(Icons.info_outline),
+                    ),
+                  ]
+                ],
+              ),
+              DateTimeInput(
+                width: width,
+                value: balanceUpdateDate,
+                setState: (value) => setState(() => balanceUpdateDate = value),
+              ),
+              ThemeHelper.hIndent2x,
+            ],
+          ),
         ),
       ),
     );
