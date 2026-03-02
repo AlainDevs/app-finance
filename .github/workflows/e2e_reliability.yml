@@ -67,6 +67,27 @@ jobs:
 
           flutter config --enable-web
 
+          chromedriver --port=4444 \
+            > "${log_dir}/chromedriver.log" 2>&1 &
+          chromedriver_pid=$!
+
+          for _ in {1..30}; do
+            if curl --silent --show-error --fail \
+              "http://127.0.0.1:4444/status" > /dev/null; then
+              break
+            fi
+
+            sleep 1
+          done
+
+          cleanup() {
+            if kill -0 "${chromedriver_pid}" 2>/dev/null; then
+              kill "${chromedriver_pid}" || true
+              wait "${chromedriver_pid}" || true
+            fi
+          }
+          trap cleanup EXIT
+
           flutter drive \
             --driver=test_driver/perf_driver.dart \
             --target=integration_test/load/start_page_test.dart \
@@ -85,4 +106,3 @@ jobs:
           name: e2e-reliability-logs-${{ matrix.lane }}
           path: coverage/reliability/${{ matrix.lane }}
           if-no-files-found: warn
-
