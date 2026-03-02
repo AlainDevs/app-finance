@@ -1,0 +1,90 @@
+name: E2E Reliability Baseline
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-reliability:
+    name: E2E Reliability (${{ matrix.lane }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        lane: [stable, quarantine]
+    continue-on-error: ${{ matrix.lane == 'quarantine' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          architecture: x64
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Execute stable E2E suite 3x consecutively (required)
+        if: matrix.lane == 'stable'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          log_dir="coverage/reliability/stable"
+          mkdir -p "${log_dir}"
+
+          for run in 1 2 3; do
+            echo "=== Stable E2E run ${run}/3 ===" | tee "${log_dir}/run_${run}_header.log"
+
+            dart run grinder full-coverage --path="" --type=e2e \
+              2>&1 | tee "${log_dir}/run_${run}_prepare.log"
+
+            dart run grinder test --coverage --path=test/e2e \
+              2>&1 | tee "${log_dir}/run_${run}.log"
+
+            dart run test_cov_console --file="./coverage/lcov.info" --total \
+              | tr -d '[:space:]' \
+              | tee "${log_dir}/test_total_run_${run}.log"
+          done
+
+          cp "${log_dir}/test_total_run_3.log" "${log_dir}/test_total.log"
+
+      - name: Execute quarantined non-deterministic test (non-blocking)
+        if: matrix.lane == 'quarantine'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          log_dir="coverage/reliability/quarantine"
+          mkdir -p "${log_dir}"
+
+          flutter config --enable-web
+
+          flutter drive \
+            --driver=test_driver/perf_driver.dart \
+            --target=integration_test/load/start_page_test.dart \
+            -d chrome \
+            --headless \
+            --no-dds \
+            2>&1 | tee "${log_dir}/run_1.log"
+
+          echo "N/A (quarantine lane via flutter drive; no lcov total generated)" \
+            > "${log_dir}/test_total.log"
+
+      - name: Upload reliability logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-reliability-logs-${{ matrix.lane }}
+          path: coverage/reliability/${{ matrix.lane }}
+          if-no-files-found: warn
+

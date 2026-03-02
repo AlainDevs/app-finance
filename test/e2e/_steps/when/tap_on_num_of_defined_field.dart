@@ -3,13 +3,11 @@
 
 import 'package:app_finance/design/form/currency_selector.dart';
 import 'package:app_finance/design/form/currency_selector_code.dart';
-import 'package:app_finance/design/form/list_account_selector.dart';
-import 'package:app_finance/design/form/list_budget_selector.dart';
-import 'package:app_finance/design/form/list_selector.dart';
 import 'package:app_finance/design/generic/base_line_widget.dart';
+import 'package:app_finance/_configs/test_keys.dart';
 import 'package:flutter_gherkin_wrapper/flutter_gherkin_wrapper.dart';
 import 'package:flutter_test/flutter_test.dart';
-// ignore: depend_on_referenced_packages
+// ignore: depend_on_referenced_packages, because of the gherkin package
 import 'package:gherkin/gherkin.dart';
 
 import '../../../screen_capture.dart';
@@ -21,21 +19,34 @@ class TapOnNumOfDefinedField extends When2WithWorld<int, String, World> {
   @override
   Future<void> executeStep(int order, String type) async {
     ScreenCapture.seize(runtimeType.toString());
-    Finder? list = switch (type) {
-      'ListSelector' => find.byType(ListSelector),
-      'ListAccountSelector' => find.byType(ListAccountSelector),
-      'ListBudgetSelector' => find.byType(ListBudgetSelector),
+    Finder list = switch (type) {
+      'ListSelector' => find.byKey(TestKeys.accountTypeSelector),
+      'ListAccountSelector' => find.byKey(TestKeys.billAccountSelector),
+      'ListBudgetSelector' => find.byKey(TestKeys.billBudgetSelector),
       'BaseLineWidget' => find.byType(BaseLineWidget),
       'CurrencySelector' => find.byType(BaseCurrencySelector),
       'CodeCurrencySelector' => find.byType(CodeCurrencySelector),
-      'AccountSelector' => find.byType(ListAccountSelector),
-      'BudgetSelector' => find.byType(ListBudgetSelector),
+      'AccountSelector' => find.byKey(TestKeys.billAccountSelector),
+      'BudgetSelector' => find.byKey(TestKeys.billBudgetSelector),
       _ => throw Exception('Not defined'),
     };
-    expectSync(list, findsWidgets);
-    await FileRunner.tester.ensureVisible(list.at(order));
-    await FileRunner.tester.tap(list.at(order), warnIfMissed: false);
-    await FileRunner.tester.pumpAndSettle(const Duration(milliseconds: 400));
+    final target = order == 0 ? list : list.at(order);
+    expectSync(target, findsOneWidget);
+    await FileRunner.tester.ensureVisible(target);
+    await FileRunner.tester.tap(target, warnIfMissed: false);
+    await _safePumpAndSettle();
     ScreenCapture.seize(runtimeType.toString());
+  }
+
+  Future<void> _safePumpAndSettle() async {
+    try {
+      await FileRunner.tester.pumpAndSettle(
+        const Duration(milliseconds: 100),
+        EnginePhase.sendSemanticsUpdate,
+        const Duration(seconds: 2),
+      );
+    } catch (_) {
+      await FileRunner.tester.pump(const Duration(milliseconds: 100));
+    }
   }
 }

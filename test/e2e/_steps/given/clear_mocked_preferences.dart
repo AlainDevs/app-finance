@@ -2,11 +2,13 @@
 // Use of this source code is governed by a CC BY-NC-ND 4.0 license that can be found in the LICENSE file.
 
 import 'package:app_finance/_classes/storage/app_preferences.dart';
+import 'package:app_finance/_classes/structure/navigation/app_route.dart';
+import 'package:app_finance/_configs/test_keys.dart';
 import 'package:dart_class_wrapper/dart_class_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gherkin_wrapper/flutter_gherkin_wrapper.dart';
 import 'package:flutter_test/flutter_test.dart';
-// ignore: depend_on_referenced_packages
+// ignore: depend_on_referenced_packages, because of the gherkin package
 import 'package:gherkin/gherkin.dart';
 import 'package:mockito/annotations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,12 +28,24 @@ class ClearMockedPreferences extends Given {
     final pref = WrapperMockSharedPreferences();
     pref.mockGetString = (value) => null;
     AppPreferences.pref = pref;
-    await FileRunner.tester.pumpAndSettle();
+    await _safePumpAndSettle();
     final ScaffoldState scafState = FileRunner.tester.firstState(find.byType(Scaffold).at(1));
     scafState.openDrawer();
-    await FileRunner.tester.pumpAndSettle();
-    final header = find.text('Home');
+    await _safePumpAndSettle();
+    final header = find.byKey(TestKeys.menuItem(AppRoute.homeRoute));
     await FileRunner.tester.tap(header);
-    await FileRunner.tester.pumpAndSettle();
+    await _safePumpAndSettle();
+  }
+
+  Future<void> _safePumpAndSettle() async {
+    try {
+      await FileRunner.tester.pumpAndSettle(
+        const Duration(milliseconds: 100),
+        EnginePhase.sendSemanticsUpdate,
+        const Duration(seconds: 2),
+      );
+    } catch (_) {
+      await FileRunner.tester.pump(const Duration(milliseconds: 100));
+    }
   }
 }

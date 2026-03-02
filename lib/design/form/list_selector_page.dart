@@ -4,6 +4,7 @@
 import 'package:app_finance/_classes/herald/app_design.dart';
 import 'package:app_finance/_classes/herald/app_locale.dart';
 import 'package:app_finance/_configs/design_type.dart';
+import 'package:app_finance/_configs/test_keys.dart';
 import 'package:app_finance/design/form/list_selector_item.dart';
 import 'package:app_finance/_configs/theme_helper.dart';
 import 'package:app_finance/_ext/build_context_ext.dart';
@@ -68,6 +69,7 @@ class ListSelectorPageState<T extends Object?> extends State<ListSelectorPage> {
         itemCount: options.length,
         itemBuilder: (BuildContext context, int index) {
           return ListTile(
+            key: TestKeys.selectorOption(options[index].id),
             tileColor: index % 2 == 0 ? context.colorScheme.primary.withValues(alpha: 0.05) : null,
             hoverColor: context.colorScheme.primary.withValues(alpha: 0.15),
             title: options[index].suggest(context),
@@ -132,6 +134,7 @@ class ListSelectorPageState<T extends Object?> extends State<ListSelectorPage> {
                       start: const Size(0, 0),
                       end: const Size(2, 1),
                       child: SimpleInput(
+                        key: TestKeys.listSelectorSearchInput,
                         controller: controller,
                         tooltip: widget.tooltip,
                         withLabel: true,

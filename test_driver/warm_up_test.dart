@@ -9,8 +9,9 @@ import '../test/pump_main.dart';
 Future<void> main() async {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
+  // ignore: missing-test-assertion, because this test is only intended to warm up the app and does not require any assertions
   testWidgets('Warm-up', (WidgetTester tester) async {
     await PumpMain.init(tester, true);
-    await tester.pumpAndSettle(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
   });
 }

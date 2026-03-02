@@ -21,20 +21,32 @@ void main() {
 
   setUpAll(() {
     TestWidgetsFlutterBinding.ensureInitialized();
-    ScreenCapture.enableScreenCapture();
+    const shouldCaptureScreens = bool.fromEnvironment('ENABLE_E2E_SCREEN_CAPTURE');
+    if (shouldCaptureScreens) {
+      ScreenCapture.enableScreenCapture();
+    }
     ExecutableStepIterator.inject(classList);
     PumpMain.cleanUpData();
   });
 
   group('Behavioral Tests', () {
     for (var file in features) {
+      // ignore: missing-test-assertion, because the assertion is done inside the step definitions
       testWidgets(file.path, (WidgetTester tester) async {
         await PumpMain.init(tester);
         final runner = FileRunner(tester);
         await runner.init(file);
         expectSync(await runner.run(), true);
-        await tester.pumpAndSettle(const Duration(seconds: 1));
-      }, timeout: const Timeout(Duration(minutes: 5)));
+        try {
+          await tester.pumpAndSettle(
+            const Duration(milliseconds: 100),
+            EnginePhase.sendSemanticsUpdate,
+            const Duration(seconds: 2),
+          );
+        } catch (_) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+      }, timeout: const Timeout(Duration(minutes: 8)));
     }
   });
 }

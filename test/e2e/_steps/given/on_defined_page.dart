@@ -3,7 +3,7 @@
 
 import 'package:flutter_gherkin_wrapper/flutter_gherkin_wrapper.dart';
 import 'package:flutter_test/flutter_test.dart';
-// ignore: depend_on_referenced_packages
+// ignore: depend_on_referenced_packages, because of the gherkin package
 import 'package:gherkin/gherkin.dart';
 
 import '../../../screen_capture.dart';
@@ -19,11 +19,12 @@ class OnDefinedPage extends Given1<String> {
     expectSync(btn, findsOneWidget);
     await FileRunner.tester.ensureVisible(btn);
     await FileRunner.tester.tap(btn);
-    await FileRunner.tester.pumpAndSettle();
+    await _safePumpAndSettle();
 
     ScreenCapture.seize('${runtimeType.toString()}_$route');
     Finder header = find.text(route);
     final matchCount = FileRunner.tester.widgetList(header).length;
+    // ignore: no-empty-block, because the case of exactly one match does not require any action
     if (matchCount == 1) {
       // do nothing
     } else if (matchCount > 1) {
@@ -33,8 +34,20 @@ class OnDefinedPage extends Given1<String> {
     }
     await FileRunner.tester.ensureVisible(header);
     await FileRunner.tester.tap(header);
-    await FileRunner.tester.pumpAndSettle();
+    await _safePumpAndSettle();
 
     ScreenCapture.seize(runtimeType.toString());
+  }
+
+  Future<void> _safePumpAndSettle() async {
+    try {
+      await FileRunner.tester.pumpAndSettle(
+        const Duration(milliseconds: 100),
+        EnginePhase.sendSemanticsUpdate,
+        const Duration(seconds: 2),
+      );
+    } catch (_) {
+      await FileRunner.tester.pump(const Duration(milliseconds: 100));
+    }
   }
 }

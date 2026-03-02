@@ -9,6 +9,7 @@ import 'package:app_finance/_classes/storage/app_data.dart';
 import 'package:app_finance/_classes/structure/bill_app_data.dart';
 import 'package:app_finance/_configs/account_type.dart';
 import 'package:app_finance/_configs/screen_helper.dart';
+import 'package:app_finance/_configs/test_keys.dart';
 import 'package:app_finance/_configs/theme_helper.dart';
 import 'package:app_finance/_ext/build_context_ext.dart';
 import 'package:app_finance/design/form/date_range_input.dart';
@@ -158,6 +159,7 @@ class BillViewPageState extends BillPageState<BillSearchPage> {
               }),
             ),
             InputWrapper(
+              key: TestKeys.billAccountSelector,
               type: NamedInputType.accountSelector,
               value: account != null ? state.getByUuid(account!) : null,
               title: AppLocale.labels.account,
@@ -171,6 +173,7 @@ class BillViewPageState extends BillPageState<BillSearchPage> {
               width: width,
             ),
             InputWrapper(
+              key: TestKeys.billBudgetSelector,
               type: NamedInputType.budgetSelector,
               value: budget != null ? state.getByUuid(budget!) : null,
               title: AppLocale.labels.budget,

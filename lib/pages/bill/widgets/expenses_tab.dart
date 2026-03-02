@@ -13,6 +13,7 @@ import 'package:app_finance/_classes/storage/app_data.dart';
 import 'package:app_finance/_configs/account_type.dart';
 import 'package:app_finance/_configs/theme_helper.dart';
 import 'package:app_finance/_configs/screen_helper.dart';
+import 'package:app_finance/_configs/test_keys.dart';
 import 'package:app_finance/_ext/build_context_ext.dart';
 import 'package:app_finance/_ext/double_ext.dart';
 import 'package:app_finance/design/button/toolbar_button_widget.dart';
@@ -154,6 +155,7 @@ class ExpensesTabState<T extends ExpensesTab> extends State<T> {
   Widget buildButton(BuildContext context, BoxConstraints constraints) {
     NavigatorState nav = Navigator.of(context);
     return FullSizedButtonWidget(
+      key: TestKeys.billCreateButton,
       constraints: constraints,
       controller: focus,
       onPressed: () => {
@@ -186,6 +188,7 @@ class ExpensesTabState<T extends ExpensesTab> extends State<T> {
             crossAxisAlignment: AppDesign.getAlignment(),
             children: [
               InputWrapper(
+                key: TestKeys.billAccountSelector,
                 type: NamedInputType.accountSelector,
                 isRequired: true,
                 value: account != null ? widget.state.getByUuid(account!) : null,
@@ -219,6 +222,7 @@ class ExpensesTabState<T extends ExpensesTab> extends State<T> {
                   ],
                   [
                     InputWrapper.text(
+                      key: TestKeys.billAmountInput,
                       title: AppLocale.labels.expense,
                       isRequired: true,
                       controller: bill,
@@ -239,11 +243,13 @@ class ExpensesTabState<T extends ExpensesTab> extends State<T> {
                 source: [accountCurrency, budgetCurrency, Exchange.defaultCurrency],
               ),
               InputWrapper.text(
+                key: TestKeys.billDescriptionInput,
                 title: AppLocale.labels.description,
                 controller: description,
                 tooltip: AppLocale.labels.descriptionTooltip,
               ),
               InputWrapper(
+                key: TestKeys.billBudgetSelector,
                 type: NamedInputType.budgetSelector,
                 isRequired: true,
                 value: budget != null ? widget.state.getByUuid(budget!) : null,

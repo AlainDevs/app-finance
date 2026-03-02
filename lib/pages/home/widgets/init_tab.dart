@@ -2,6 +2,7 @@
 // Use of this source code is governed by a CC BY-NC-ND 4.0 license that can be found in the LICENSE file.
 
 import 'package:app_finance/_classes/herald/app_locale.dart';
+import 'package:app_finance/_configs/test_keys.dart';
 import 'package:app_finance/_configs/theme_helper.dart';
 import 'package:app_finance/pages/_interfaces/abstract_page_state.dart';
 import 'package:app_finance/design/generic/loading_widget.dart';
@@ -33,6 +34,14 @@ class InitTabState extends AbstractPageState<InitTab> {
   @override
   Widget buildContent(BuildContext context, BoxConstraints constraints) =>
       LoadingWidget(isLoading: super.state.isLoading);
+
+  @override
+  Widget build(BuildContext context) {
+    return KeyedSubtree(
+      key: TestKeys.homeInitializationPage,
+      child: super.build(context),
+    );
+  }
 
   @override
   String getTitle() => AppLocale.labels.appInitHeadline;

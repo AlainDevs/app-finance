@@ -8,6 +8,7 @@ import 'package:app_finance/_classes/controller/focus_controller.dart';
 import 'package:app_finance/_classes/storage/app_preferences.dart';
 import 'package:app_finance/_configs/budget_type.dart';
 import 'package:app_finance/_configs/custom_color_scheme.dart';
+import 'package:app_finance/_configs/test_keys.dart';
 import 'package:app_finance/_configs/theme_helper.dart';
 import 'package:app_finance/_ext/build_context_ext.dart';
 import 'package:app_finance/_ext/date_time_ext.dart';
@@ -113,6 +114,7 @@ class BudgetAddPageState<T extends BudgetAddPage> extends AbstractAddPageState<T
   Widget buildButton(BuildContext context, BoxConstraints constraints) {
     NavigatorState nav = Navigator.of(context);
     return FullSizedButtonWidget(
+      key: TestKeys.budgetCreateButton,
       constraints: constraints,
       controller: focus,
       onPressed: () => triggerActionButton(nav),
@@ -127,143 +129,147 @@ class BudgetAddPageState<T extends BudgetAddPage> extends AbstractAddPageState<T
     double indent = ThemeHelper.getIndent(2);
     double width = ThemeHelper.getWidth(context, 6, constraints);
 
-    return SingleScrollWrapper(
-      controller: focus,
-      child: Container(
-        margin: EdgeInsets.fromLTRB(indent, indent, indent, 240),
-        child: Column(
-          crossAxisAlignment: AppDesign.getAlignment(),
-          children: [
-            InputWrapper.text(
-              isRequired: true,
-              controller: title,
-              title: AppLocale.labels.title,
-              tooltip: AppLocale.labels.titleBudgetTooltip,
-              showError: hasError && title.text.isEmpty,
-            ),
-            InputWrapper.select(
-              isRequired: true,
-              isDisabled: widget.uuid != null,
-              value: type,
-              title: AppLocale.labels.budgetType,
-              tooltip: AppLocale.labels.budgetType,
-              showError: hasError && type == null,
-              options: BudgetType.getList(),
-              onChange: (value) => setState(() => type = value),
-            ),
-            RowWidget(
-              indent: indent,
-              maxWidth: width + indent,
-              chunk: const [0.5, 0.5],
-              children: [
-                [
-                  InputWrapper.icon(
-                    value: icon,
-                    title: AppLocale.labels.icon,
-                    onChange: (value) => setState(() => icon = value),
-                  ),
+    return KeyedSubtree(
+      key: TestKeys.budgetForm,
+      child: SingleScrollWrapper(
+        controller: focus,
+        child: Container(
+          margin: EdgeInsets.fromLTRB(indent, indent, indent, 240),
+          child: Column(
+            crossAxisAlignment: AppDesign.getAlignment(),
+            children: [
+              InputWrapper.text(
+                key: TestKeys.budgetTitleInput,
+                isRequired: true,
+                controller: title,
+                title: AppLocale.labels.title,
+                tooltip: AppLocale.labels.titleBudgetTooltip,
+                showError: hasError && title.text.isEmpty,
+              ),
+              InputWrapper.select(
+                isRequired: true,
+                isDisabled: widget.uuid != null,
+                value: type,
+                title: AppLocale.labels.budgetType,
+                tooltip: AppLocale.labels.budgetType,
+                showError: hasError && type == null,
+                options: BudgetType.getList(),
+                onChange: (value) => setState(() => type = value),
+              ),
+              RowWidget(
+                indent: indent,
+                maxWidth: width + indent,
+                chunk: const [0.5, 0.5],
+                children: [
+                  [
+                    InputWrapper.icon(
+                      value: icon,
+                      title: AppLocale.labels.icon,
+                      onChange: (value) => setState(() => icon = value),
+                    ),
+                  ],
+                  [
+                    InputWrapper.color(
+                      value: color,
+                      title: AppLocale.labels.color,
+                      onChange: (value) => setState(() => color = value),
+                    ),
+                  ],
                 ],
-                [
-                  InputWrapper.color(
-                    value: color,
-                    title: AppLocale.labels.color,
-                    onChange: (value) => setState(() => color = value),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                textDirection: AppDesign.getAlignment<TextDirection>(),
+                children: [
+                  TextWrapper(
+                    AppLocale.labels.budgetLimit,
+                    style: textTheme.bodyLarge,
                   ),
+                  amountSet.isEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.vertical_split),
+                          tooltip: AppLocale.labels.splitTooltip,
+                          onPressed: () => setState(() {
+                            final result = Map<int, double>.from(amountSet);
+                            for (int i = 1; i <= 12; i++) {
+                              result[i] = 1.0;
+                            }
+                            amountSet = result;
+                          }),
+                        )
+                      : IconButton(
+                          icon: const Icon(Icons.delete),
+                          tooltip: AppLocale.labels.splitCancelTooltip,
+                          onPressed: () => setState(() => amountSet = {}),
+                        ),
                 ],
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              textDirection: AppDesign.getAlignment<TextDirection>(),
-              children: [
-                TextWrapper(
-                  AppLocale.labels.budgetLimit,
+              ),
+              SimpleInput(
+                key: TestKeys.budgetBalanceInput,
+                controller: budgetLimit,
+                type: const TextInputType.numberWithOptions(decimal: true),
+                tooltip: AppLocale.labels.balanceTooltip,
+                formatter: [
+                  SimpleInputFormatter.filterDouble,
+                ],
+              ),
+              BudgetTypeWidget(controller: budgetLimit),
+              ThemeHelper.hIndent2x,
+              if (amountSet.isNotEmpty) ...[
+                Text(
+                  AppLocale.labels.budgetRelativeLimit,
                   style: textTheme.bodyLarge,
                 ),
-                amountSet.isEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.vertical_split),
-                        tooltip: AppLocale.labels.splitTooltip,
-                        onPressed: () => setState(() {
-                          final result = Map<int, double>.from(amountSet);
-                          for (int i = 1; i <= 12; i++) {
-                            result[i] = 1.0;
-                          }
-                          amountSet = result;
-                        }),
-                      )
-                    : IconButton(
-                        icon: const Icon(Icons.delete),
-                        tooltip: AppLocale.labels.splitCancelTooltip,
-                        onPressed: () => setState(() => amountSet = {}),
-                      ),
-              ],
-            ),
-            SimpleInput(
-              key: ValueKey(AppLocale.labels.budgetLimit),
-              controller: budgetLimit,
-              type: const TextInputType.numberWithOptions(decimal: true),
-              tooltip: AppLocale.labels.balanceTooltip,
-              formatter: [
-                SimpleInputFormatter.filterDouble,
-              ],
-            ),
-            BudgetTypeWidget(controller: budgetLimit),
-            ThemeHelper.hIndent2x,
-            if (amountSet.isNotEmpty) ...[
-              Text(
-                AppLocale.labels.budgetRelativeLimit,
-                style: textTheme.bodyLarge,
-              ),
-              ...amountSet.entries.map((e) {
-                return RowWidget(
-                  indent: indent,
-                  maxWidth: width + indent,
-                  chunk: const [100, null],
-                  children: [
-                    [
-                      Text(
-                        DateTime(DateTime.now().year, e.key).fullMonth(),
-                        style: textTheme.headlineMedium,
-                      ),
-                    ],
-                    [
-                      Container(
-                        color: context.colorScheme.fieldBackground,
-                        child: Slider(
-                          value: e.value,
-                          onChanged: (v) => setState(() => amountSet[e.key] = v),
-                          min: 0.0,
-                          max: 4.0,
-                          divisions: 15,
-                          label: e.value.toStringAsFixed(2),
+                ...amountSet.entries.map((e) {
+                  return RowWidget(
+                    indent: indent,
+                    maxWidth: width + indent,
+                    chunk: const [100, null],
+                    children: [
+                      [
+                        Text(
+                          DateTime(DateTime.now().year, e.key).fullMonth(),
+                          style: textTheme.headlineMedium,
                         ),
-                      ),
+                      ],
+                      [
+                        Container(
+                          color: context.colorScheme.fieldBackground,
+                          child: Slider(
+                            value: e.value,
+                            onChanged: (v) => setState(() => amountSet[e.key] = v),
+                            min: 0.0,
+                            max: 4.0,
+                            divisions: 15,
+                            label: e.value.toStringAsFixed(2),
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
-                );
-              }),
+                  );
+                }),
+                ThemeHelper.hIndent2x,
+              ],
+              InputWrapper.currency(
+                isRequired: true,
+                showError: hasError && currency == null,
+                value: currency,
+                title: AppLocale.labels.currency,
+                tooltip: AppLocale.labels.currencyTooltip,
+                onChange: (value) => setState(() => currency = value),
+              ),
+              RowWidget(
+                indent: indent,
+                maxWidth: width + indent,
+                chunk: const [20, null],
+                children: [
+                  [Checkbox(value: skip, onChanged: (value) => setState(() => skip = value!))],
+                  [ThemeHelper.hIndent05, TextWrapper(AppLocale.labels.skipFromTotals)],
+                ],
+              ),
               ThemeHelper.hIndent2x,
             ],
-            InputWrapper.currency(
-              isRequired: true,
-              showError: hasError && currency == null,
-              value: currency,
-              title: AppLocale.labels.currency,
-              tooltip: AppLocale.labels.currencyTooltip,
-              onChange: (value) => setState(() => currency = value),
-            ),
-            RowWidget(
-              indent: indent,
-              maxWidth: width + indent,
-              chunk: const [20, null],
-              children: [
-                [Checkbox(value: skip, onChanged: (value) => setState(() => skip = value!))],
-                [ThemeHelper.hIndent05, TextWrapper(AppLocale.labels.skipFromTotals)],
-              ],
-            ),
-            ThemeHelper.hIndent2x,
-          ],
+          ),
         ),
       ),
     );

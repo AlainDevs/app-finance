@@ -3,6 +3,7 @@
 
 import 'package:app_finance/_classes/herald/app_locale.dart';
 import 'package:app_finance/_classes/structure/navigation/app_route.dart';
+import 'package:app_finance/_configs/test_keys.dart';
 import 'package:app_finance/_configs/theme_helper.dart';
 import 'package:app_finance/pages/_interfaces/abstract_page_state.dart';
 import 'package:app_finance/pages/start/widgets/about_tab.dart';
@@ -72,6 +73,14 @@ class StartPageState extends AbstractPageState<StartPage> {
       });
 
   void _finalize(NavigatorState nav) => nav.popAndPushNamed(AppRoute.homeRoute);
+
+  @override
+  Widget build(BuildContext context) {
+    return KeyedSubtree(
+      key: TestKeys.startPage,
+      child: super.build(context),
+    );
+  }
 
   @override
   Widget buildContent(BuildContext context, BoxConstraints constraints) {

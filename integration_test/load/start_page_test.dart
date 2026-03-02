@@ -6,6 +6,8 @@ import 'package:flutter_gherkin_wrapper/flutter_gherkin_wrapper.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:app_finance/_configs/test_keys.dart';
+
 import '../../test/e2e/e2e_test.list.dart';
 import '../../test/e2e/_steps/given/first_run.dart';
 import '../../test/pump_main.dart';
@@ -22,6 +24,6 @@ void main() {
     FileRunner.tester = tester;
     await FirstRun().executeStep();
 
-    expect(find.text('Initial Setup'), findsOneWidget);
+    expect(find.byKey(TestKeys.startPage), findsOneWidget);
   });
 }

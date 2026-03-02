@@ -3,8 +3,10 @@
 
 import 'package:flutter_gherkin_wrapper/flutter_gherkin_wrapper.dart';
 import 'package:flutter_test/flutter_test.dart';
-// ignore: depend_on_referenced_packages
+// ignore: depend_on_referenced_packages, because of the gherkin package
 import 'package:gherkin/gherkin.dart';
+
+import 'package:app_finance/_configs/test_keys.dart';
 
 class FirstRun extends Given {
   @override
@@ -12,11 +14,10 @@ class FirstRun extends Given {
 
   @override
   Future<void> executeStep() async {
-    Finder init;
-    do {
-      init = find.text('Project Initialization');
-      await FileRunner.tester.pumpAndSettle(const Duration(microseconds: 50));
-    } while (init.evaluate().isNotEmpty);
+    final loading = find.byKey(TestKeys.homeInitializationPage);
+    while (loading.evaluate().isNotEmpty) {
+      await FileRunner.tester.pumpAndSettle();
+    }
     await FileRunner.tester.pumpAndSettle();
   }
 }
