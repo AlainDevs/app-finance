@@ -3,6 +3,7 @@
 
 import 'package:app_finance/_classes/math/abstract_recalculation.dart';
 import 'package:app_finance/_classes/storage/history_data.dart';
+import 'package:app_finance/_classes/structure/abstract_app_data.dart';
 import 'package:app_finance/_classes/structure/account_app_data.dart';
 import 'package:app_finance/_classes/structure/bill_app_data.dart';
 import 'package:app_finance/_classes/structure/budget_app_data.dart';
@@ -21,36 +22,36 @@ class BillRecalculation extends AbstractRecalculation {
 
   double getPrevDelta() => initial?.hidden == true ? 0.0 : initial?.details;
 
-  double getStateDelta(dynamic prev, dynamic curr, [bool isBudget = true]) {
-    double initialDetails = initial?.details ?? 0.0;
-    double delta = change.hidden ? 0.0 : change.details;
-    if (isBudget) {
-      initialDetails *= initial?.exchangeCategory ?? 1.0;
-      delta *= change.exchangeCategory;
-    } else {
-      initialDetails *= initial?.exchangeAccount ?? 1.0;
-      delta *= change.exchangeAccount;
+  double getStateDelta(AbstractAppData? prev, AbstractAppData? curr, [bool isBudget = true]) {
+    final initialDetails = (initial?.details ?? 0.0) * _getInitialExchangeRate(isBudget);
+    final delta = _getCurrentDelta(isBudget);
+    if (!_isSameStateEntity(prev, curr)) {
+      return delta;
     }
-    if (initial != null && prev?.uuid == curr?.uuid) {
-      delta = initial?.hidden == true ? delta : delta - initialDetails;
+
+    if (initial?.hidden == true) {
+      return delta;
     }
-    return delta;
+
+    return delta - initialDetails;
   }
 
   BillRecalculation updateAccount(AccountAppData accountChange, AccountAppData? accountInitial) {
     double? diffDelta;
-    if (accountInitial != null && initial != null && accountChange.uuid != accountInitial.uuid) {
+    final initialBill = initial;
+    if (accountInitial != null && initialBill != null && accountChange.uuid != accountInitial.uuid) {
       diffDelta = getPrevDelta();
-      HistoryData.addLog(accountInitial.uuid!, initial, 0.0, diffDelta, initial!.uuid);
+      HistoryData.addLog(accountInitial.uuid ?? '', initialBill, 0.0, diffDelta, initialBill.uuid);
     }
     double delta = getStateDelta(accountInitial, accountChange, false);
-    HistoryData.addLog(accountChange.uuid!, change, 0.0, -delta, change.uuid);
-    if (diffDelta != null && accountInitial?.createdAt.isBefore(initial?.createdAt ?? DateTime.now()) == true) {
-      accountInitial!.details += exchange.reform(diffDelta, initial?.currency, accountInitial.currency);
+    HistoryData.addLog(accountChange.uuid ?? '', change, 0.0, -delta, change.uuid);
+    if (diffDelta != null && accountInitial?.createdAt.isBefore(initialBill?.createdAt ?? DateTime.now()) == true) {
+      accountInitial?.details += exchange.reform(diffDelta, initialBill?.currency, accountInitial.currency);
     }
     if (accountChange.createdAt.isBefore(change.createdAt)) {
       accountChange.details -= delta;
     }
+
     return this;
   }
 
@@ -67,6 +68,25 @@ class BillRecalculation extends AbstractRecalculation {
       budgetChange.progress = getProgress(budgetChange.amountLimit, budgetChange.progress, delta);
       budgetChange.amount += delta;
     }
+
     return this;
+  }
+
+  double _getCurrentDelta(bool isBudget) {
+    final baseDelta = change.hidden ? 0.0 : change.details;
+
+    return baseDelta * _getChangeExchangeRate(isBudget);
+  }
+
+  double _getChangeExchangeRate(bool isBudget) {
+    return isBudget ? change.exchangeCategory : change.exchangeAccount;
+  }
+
+  double _getInitialExchangeRate(bool isBudget) {
+    return isBudget ? initial?.exchangeCategory ?? 1.0 : initial?.exchangeAccount ?? 1.0;
+  }
+
+  bool _isSameStateEntity(AbstractAppData? prev, AbstractAppData? curr) {
+    return initial != null && prev?.uuid == curr?.uuid;
   }
 }

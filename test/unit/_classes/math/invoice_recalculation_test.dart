@@ -1,6 +1,8 @@
 // Copyright 2023 The terCAD team. All rights reserved.
 // Use of this source code is governed by a CC BY-NC-ND 4.0 license that can be found in the LICENSE file.
 
+// ignore_for_file: type=lint
+
 import 'package:app_finance/_classes/math/invoice_recalculation.dart';
 import 'package:app_finance/_classes/structure/account_app_data.dart';
 import 'package:app_finance/_classes/structure/currency/exchange.dart';
@@ -169,6 +171,74 @@ void main() {
           expect(change.details, v.result.changeAccountDetails);
         });
       }
+
+      test('applies reverse flow for account migration and target account update', () {
+        object.initial!.createdAtFormatted = '2026-03-04 00:00:00';
+        object.change.createdAtFormatted = '2026-03-04 00:00:00';
+
+        final mock = WrapperInvoiceRecalculation(
+          object.change,
+          object.initial,
+        )..exchange = object.exchange;
+        mock.mockGetStateDelta = (a, b) => 20.0;
+        mock.mockGetPrevDelta = () => 10.0;
+
+        final initial = AccountAppData(title: '', type: '')
+          ..uuid = 'initial-account'
+          ..createdAtFormatted = '2026-03-03 00:00:00';
+        final change = AccountAppData(title: '', type: '')
+          ..uuid = 'change-account'
+          ..createdAtFormatted = '2026-03-03 00:00:00';
+
+        mock.updateAccount(change, initial, true);
+
+        expect(initial.details, -10.0);
+        expect(change.details, -20.0);
+      });
+
+      test('skips migration branch when previous account is absent', () {
+        object.initial!.createdAtFormatted = '2026-03-04 00:00:00';
+        object.change.createdAtFormatted = '2026-03-04 00:00:00';
+
+        final mock = WrapperInvoiceRecalculation(
+          object.change,
+          object.initial,
+        )..exchange = object.exchange;
+        mock.mockGetStateDelta = (a, b) => 15.0;
+        mock.mockGetPrevDelta = () => 99.0;
+
+        final change = AccountAppData(title: '', type: '')
+          ..uuid = 'change-account'
+          ..createdAtFormatted = '2026-03-03 00:00:00';
+
+        mock.updateAccount(change, null);
+
+        expect(change.details, 15.0);
+      });
+
+      test('does not adjust target account when change account is newer than invoice', () {
+        object.initial!.createdAtFormatted = '2026-03-04 00:00:00';
+        object.change.createdAtFormatted = '2026-03-04 00:00:00';
+
+        final mock = WrapperInvoiceRecalculation(
+          object.change,
+          object.initial,
+        )..exchange = object.exchange;
+        mock.mockGetStateDelta = (a, b) => 20.0;
+        mock.mockGetPrevDelta = () => 10.0;
+
+        final initial = AccountAppData(title: '', type: '')
+          ..uuid = 'initial-account'
+          ..createdAtFormatted = '2026-03-03 00:00:00';
+        final change = AccountAppData(title: '', type: '')
+          ..uuid = 'change-account'
+          ..createdAtFormatted = '2026-03-05 00:00:00';
+
+        mock.updateAccount(change, initial);
+
+        expect(initial.details, -10.0);
+        expect(change.details, 0.0);
+      });
     });
   });
 }

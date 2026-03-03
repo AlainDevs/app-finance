@@ -2,6 +2,8 @@
 // Use of this source code is governed by a CC BY-NC-ND 4.0 license that can be
 // found in the LICENSE file.
 
+// ignore_for_file: type=lint
+
 import 'package:app_finance/_classes/storage/app_preferences.dart';
 import 'package:app_finance/_classes/structure/account_app_data.dart';
 import 'package:app_finance/_classes/structure/bill_app_data.dart';
@@ -97,6 +99,60 @@ void main() {
           expect(object.getStateDelta(object.initial, object.change), v.result);
         });
       }
+
+      test('uses account exchange rates when isBudget is false', () {
+        object.initial!
+          ..hidden = false
+          ..details = 10.0
+          ..exchangeAccount = 2.0
+          ..uuid = 'same';
+        object.change
+          ..hidden = false
+          ..details = 20.0
+          ..exchangeAccount = 3.0
+          ..uuid = 'same';
+
+        final prev = AccountAppData(title: '', type: '')..uuid = 'same';
+        final curr = AccountAppData(title: '', type: '')..uuid = 'same';
+
+        expect(object.getStateDelta(prev, curr, false), 40.0);
+      });
+
+      test('keeps account delta when initial is hidden on the same item', () {
+        object.initial!
+          ..hidden = true
+          ..details = 10.0
+          ..exchangeAccount = 2.0
+          ..uuid = 'same';
+        object.change
+          ..hidden = false
+          ..details = 5.0
+          ..exchangeAccount = 4.0
+          ..uuid = 'same';
+
+        final prev = AccountAppData(title: '', type: '')..uuid = 'same';
+        final curr = AccountAppData(title: '', type: '')..uuid = 'same';
+
+        expect(object.getStateDelta(prev, curr, false), 20.0);
+      });
+
+      test('returns converted account delta for different references', () {
+        object.initial!
+          ..hidden = false
+          ..details = 10.0
+          ..exchangeAccount = 2.0
+          ..uuid = 'first';
+        object.change
+          ..hidden = false
+          ..details = 8.0
+          ..exchangeAccount = 3.0
+          ..uuid = 'second';
+
+        final prev = AccountAppData(title: '', type: '')..uuid = 'first';
+        final curr = AccountAppData(title: '', type: '')..uuid = 'second';
+
+        expect(object.getStateDelta(prev, curr, false), 24.0);
+      });
     });
     group('getPrevDelta', () {
       final testCases = [
