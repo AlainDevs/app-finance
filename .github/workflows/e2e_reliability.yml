@@ -70,103 +70,61 @@ jobs:
         run: |
           set -euo pipefail
 
-          run="${{ matrix.iteration }}"
-          log_dir="coverage/reliability/quarantine/run_${run}"
+          log_dir="coverage/reliability/quarantine/run_${{ matrix.iteration }}"
           mkdir -p "${log_dir}"
-
           flutter config --enable-web
 
-          start_chromedriver() {
-            chromedriver --port=4444 \
-              > "${log_dir}/chromedriver.log" 2>&1 &
-            chromedriver_pid=$!
+          # Chrome sandbox wrapper for root environments (act/Docker)
+          if [[ "$(id -u)" -eq 0 ]]; then
+            real="$(command -v google-chrome || command -v chromium-browser || echo google-chrome)"
+            printf '#!/bin/sh\nexec "%s" --no-sandbox --disable-dev-shm-usage "$@"\n' "${real}" \
+              > /usr/local/bin/chrome-wrap && chmod +x /usr/local/bin/chrome-wrap
+            export CHROME_EXECUTABLE=/usr/local/bin/chrome-wrap
+          fi
 
-            for _ in {1..30}; do
-              if curl --silent --show-error --fail \
-                "http://127.0.0.1:4444/status" > /dev/null; then
-                return 0
-              fi
+          kill_pid() { kill "$1" 2>/dev/null; wait "$1" 2>/dev/null; } || true
 
-              sleep 1
+          run_drive() {
+            local log="${log_dir}/run_${1}.log"
+
+            chromedriver --port=4444 > "${log_dir}/chromedriver.log" 2>&1 &
+            local cd_pid=$!
+            trap "kill_pid ${cd_pid}" RETURN
+
+            local i=0; while ! curl -sf http://127.0.0.1:4444/status >/dev/null 2>&1; do
+              ((++i > 30)) && { echo "Chromedriver not ready" | tee "${log}"; return 1; }; sleep 1
             done
 
-            return 1
+            env CHROME_NO_SANDBOX=true xvfb-run --auto-servernum \
+              --server-args="-screen 0 1920x1080x24" \
+              flutter drive --driver=test_driver/perf_driver.dart \
+                --target=integration_test/load/start_page_test.dart \
+                -d chrome --headless --no-dds --no-pub \
+              > "${log}" 2>&1 &
+            local pid=$!
+
+            local t=0
+            while kill -0 "${pid}" 2>/dev/null; do
+              grep -q "All tests passed!"          "${log}" 2>/dev/null && { kill_pid "${pid}"; cat "${log}"; return 0; }
+              grep -qE "Some tests failed|failed"  "${log}" 2>/dev/null && { kill_pid "${pid}"; cat "${log}"; return 1; }
+              ((t >= 240)) && { kill_pid "${pid}"; cat "${log}"; return 124; }
+              sleep 2; t=$((t + 2))
+            done
+            wait "${pid}"; local rc=$?; cat "${log}"; return "${rc}"
           }
 
-          stop_chromedriver() {
-            if [[ -n "${chromedriver_pid:-}" ]] && kill -0 "${chromedriver_pid}" 2>/dev/null; then
-              kill "${chromedriver_pid}" || true
-              wait "${chromedriver_pid}" || true
-            fi
-          }
-
-          cleanup() {
-            stop_chromedriver
-          }
-          trap cleanup EXIT
-
-          run_drive_once() {
-            local attempt="$1"
-            local attempt_log="${log_dir}/run_${attempt}.log"
-
-            timeout --signal=TERM --kill-after=20s 4m \
-              env CHROME_NO_SANDBOX=true \
-              xvfb-run --auto-servernum \
-                --server-args="-screen 0 1920x1080x24" \
-                flutter drive \
-                  --driver=test_driver/perf_driver.dart \
-                  --target=integration_test/load/start_page_test.dart \
-                  -d chrome \
-                  --headless \
-                  --no-dds \
-                  --no-pub \
-              2>&1 | tee "${attempt_log}"
-
-            return "${PIPESTATUS[0]}"
-          }
-
-          max_attempts=3
-          quarantine_exit=1
-
-          for attempt in $(seq 1 "${max_attempts}"); do
-            stop_chromedriver
-
-            if ! start_chromedriver; then
-              echo "Chromedriver failed to become ready on :4444" \
-                | tee "${log_dir}/run_${attempt}.log"
-              quarantine_exit=1
-            else
-              set +e
-              run_drive_once "${attempt}"
-              quarantine_exit=$?
-              set -e
-
-              if [[ "${quarantine_exit}" -eq 0 ]]; then
-                break
-              fi
-            fi
-
-            if [[ "${quarantine_exit}" -eq 124 ]] || \
-              grep -q "AppConnectionException" "${log_dir}/run_${attempt}.log"; then
-              if [[ "${attempt}" -lt "${max_attempts}" ]]; then
-                echo "Retrying quarantine run after transient web-driver connection issue" \
-                  | tee -a "${log_dir}/run_${attempt}.log"
-                sleep 2
-                continue
-              fi
-            fi
-
-            break
+          rc=1
+          for attempt in 1 2 3; do
+            set +e; run_drive "${attempt}"; rc=$?; set -e
+            [[ "${rc}" -eq 0 ]] && break
+            [[ "${rc}" -eq 124 ]] || grep -q "AppConnectionException" "${log_dir}/run_${attempt}.log" 2>/dev/null \
+              || break
+            [[ "${attempt}" -lt 3 ]] && sleep 2 || break
           done
 
-          echo "N/A (quarantine lane via flutter drive; no lcov total generated)" \
-            > "${log_dir}/test_total.log"
-
-          if [[ "${quarantine_exit}" -ne 0 ]]; then
-            echo "Quarantine run failed with exit code ${quarantine_exit}" \
-              | tee -a "${log_dir}/run_final_status.log"
-            exit "${quarantine_exit}"
-          fi
+          echo "N/A (quarantine lane; no lcov)" > "${log_dir}/test_total.log"
+          [[ "${rc}" -ne 0 ]] && { echo "Quarantine failed (exit ${rc})" | tee "${log_dir}/run_final_status.log"; exit "${rc}"; }
+          exit 0
 
       - name: Upload reliability logs
         if: ${{ always() && env.ACT != 'true' }}
