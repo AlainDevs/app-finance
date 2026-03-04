@@ -9,8 +9,7 @@ class AppLocalizationsAz extends AppLocalizations {
   AppLocalizationsAz([String locale = 'az']) : super(locale);
 
   @override
-  String get a =>
-      'RUN `dart run grinder sort-translations --quiet` FOR ORDERING';
+  String get a => 'RUN `dart run grinder sort-translations --quiet` FOR ORDERING';
 
   @override
   String get aboutHeadline => 'Haqqında';
@@ -103,8 +102,7 @@ class AppLocalizationsAz extends AppLocalizations {
   String get balanceDate => 'Balans Tarixi Yeniləmə';
 
   @override
-  String get balanceDateTooltip =>
-      'Bu tarixdən əvvəlki nəticələr və Gəlirlər balansa təsir etməyəcək';
+  String get balanceDateTooltip => 'Bu tarixdən əvvəlki nəticələr və Gəlirlər balansa təsir etməyəcək';
 
   @override
   String get balanceTooltip => 'Balansı təyin edin';
@@ -314,8 +312,7 @@ class AppLocalizationsAz extends AppLocalizations {
   String get confirmHeader => 'Fəaliyyəti təsdiqləyin';
 
   @override
-  String get confirmTooltip =>
-      'Sən əminsən? Bu əməliyyat geri qaytarıla bilməz.';
+  String get confirmTooltip => 'Sən əminsən? Bu əməliyyat geri qaytarıla bilməz.';
 
   @override
   String get contributors => 'Töhfəçilər';
@@ -595,8 +592,7 @@ class AppLocalizationsAz extends AppLocalizations {
   String get errorExpired => 'Kartın müddəti bitdi';
 
   @override
-  String get errorNegative =>
-      'Mənfi ola bilməz! Zəhmət olmasa, xətanı düzəldin';
+  String get errorNegative => 'Mənfi ola bilməz! Zəhmət olmasa, xətanı düzəldin';
 
   @override
   String get example => 'Misal';
@@ -745,8 +741,7 @@ class AppLocalizationsAz extends AppLocalizations {
   }
 
   @override
-  String get noChartData =>
-      'Göstərilmək üçün məlumat çatışmır (və ya kifayət deyil).';
+  String get noChartData => 'Göstərilmək üçün məlumat çatışmır (və ya kifayət deyil).';
 
   @override
   String get notifyHeadline => 'Bildirişlər Parser';

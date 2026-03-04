@@ -158,7 +158,8 @@ void main() {
         targetController: editor,
       );
       final pair = controller.get(0);
-      final parsePairSum = () => double.tryParse(pair.sum.text);
+
+      double? parsePairSum() => double.tryParse(pair.sum.text);
 
       pair.rate.text = '0';
       final zeroSum = parsePairSum();

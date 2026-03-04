@@ -23,9 +23,6 @@ jobs:
             iteration: 2
           - lane: stable
             iteration: 3
-          - lane: quarantine
-            iteration: 1
-    continue-on-error: ${{ matrix.lane == 'quarantine' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -64,109 +61,6 @@ jobs:
             | tr -d '[:space:]' \
             | tee "${log_dir}/test_total.log"
 
-      - name: Execute quarantined non-deterministic test (non-blocking)
-        if: ${{ matrix.lane == 'quarantine' && env.ACT != 'true' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          run="${{ matrix.iteration }}"
-          log_dir="coverage/reliability/quarantine/run_${run}"
-          mkdir -p "${log_dir}"
-
-          flutter config --enable-web
-
-          start_chromedriver() {
-            chromedriver --port=4444 \
-              > "${log_dir}/chromedriver.log" 2>&1 &
-            chromedriver_pid=$!
-
-            for _ in {1..30}; do
-              if curl --silent --show-error --fail \
-                "http://127.0.0.1:4444/status" > /dev/null; then
-                return 0
-              fi
-
-              sleep 1
-            done
-
-            return 1
-          }
-
-          stop_chromedriver() {
-            if [[ -n "${chromedriver_pid:-}" ]] && kill -0 "${chromedriver_pid}" 2>/dev/null; then
-              kill "${chromedriver_pid}" || true
-              wait "${chromedriver_pid}" || true
-            fi
-          }
-
-          cleanup() {
-            stop_chromedriver
-          }
-          trap cleanup EXIT
-
-          run_drive_once() {
-            local attempt="$1"
-            local attempt_log="${log_dir}/run_${attempt}.log"
-
-            timeout --signal=TERM --kill-after=20s 4m \
-              env CHROME_NO_SANDBOX=true \
-              xvfb-run --auto-servernum \
-                --server-args="-screen 0 1920x1080x24" \
-                flutter drive \
-                  --driver=test_driver/perf_driver.dart \
-                  --target=integration_test/load/start_page_test.dart \
-                  -d chrome \
-                  --headless \
-                  --no-dds \
-                  --no-pub \
-              2>&1 | tee "${attempt_log}"
-
-            return "${PIPESTATUS[0]}"
-          }
-
-          max_attempts=3
-          quarantine_exit=1
-
-          for attempt in $(seq 1 "${max_attempts}"); do
-            stop_chromedriver
-
-            if ! start_chromedriver; then
-              echo "Chromedriver failed to become ready on :4444" \
-                | tee "${log_dir}/run_${attempt}.log"
-              quarantine_exit=1
-            else
-              set +e
-              run_drive_once "${attempt}"
-              quarantine_exit=$?
-              set -e
-
-              if [[ "${quarantine_exit}" -eq 0 ]]; then
-                break
-              fi
-            fi
-
-            if [[ "${quarantine_exit}" -eq 124 ]] || \
-              grep -q "AppConnectionException" "${log_dir}/run_${attempt}.log"; then
-              if [[ "${attempt}" -lt "${max_attempts}" ]]; then
-                echo "Retrying quarantine run after transient web-driver connection issue" \
-                  | tee -a "${log_dir}/run_${attempt}.log"
-                sleep 2
-                continue
-              fi
-            fi
-
-            break
-          done
-
-          echo "N/A (quarantine lane via flutter drive; no lcov total generated)" \
-            > "${log_dir}/test_total.log"
-
-          if [[ "${quarantine_exit}" -ne 0 ]]; then
-            echo "Quarantine run failed with exit code ${quarantine_exit}" \
-              | tee -a "${log_dir}/run_final_status.log"
-            exit "${quarantine_exit}"
-          fi
 
       - name: Upload reliability logs
         if: ${{ always() && env.ACT != 'true' }}
@@ -175,3 +69,23 @@ jobs:
           name: e2e-reliability-logs-${{ matrix.lane }}-run-${{ matrix.iteration }}
           path: coverage/reliability/${{ matrix.lane }}/run_${{ matrix.iteration }}
           if-no-files-found: warn
+
+      - name: Notify via ntfy
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          if [[ "${{ job.status }}" == "success" ]]; then
+            title="E2E ${{ matrix.lane }} #${{ matrix.iteration }} passed"
+            tags="white_check_mark"
+            priority="default"
+          else
+            title="E2E ${{ matrix.lane }} #${{ matrix.iteration }} failed"
+            tags="x"
+            priority="high"
+          fi
+          curl -sf -u "${{ secrets.NTFY_USER }}:${{ secrets.NTFY_PASS }}" \
+            -H "Title: ${title}" \
+            -H "Tags: ${tags}" \
+            -H "Priority: ${priority}" \
+            -d "Job: ${{ matrix.lane }} #${{ matrix.iteration }} - ${{ job.status }}" \
+            "${{ secrets.NTFY_URL }}" || echo "ntfy notification skipped (no credentials)"

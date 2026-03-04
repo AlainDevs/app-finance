@@ -9,8 +9,7 @@ class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
-  String get a =>
-      'RUN `dart run grinder sort-translations --quiet` FOR ORDERING';
+  String get a => 'RUN `dart run grinder sort-translations --quiet` FOR ORDERING';
 
   @override
   String get aboutHeadline => 'À propos';
@@ -103,8 +102,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get balanceDate => 'Mise à jour de la date du solde';
 
   @override
-  String get balanceDateTooltip =>
-      'Les résultats et revenus antérieurs à cette date n\'affecteront pas le solde.';
+  String get balanceDateTooltip => 'Les résultats et revenus antérieurs à cette date n\'affecteront pas le solde.';
 
   @override
   String get balanceTooltip => 'Fixer le solde';
@@ -314,8 +312,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get confirmHeader => 'Confirmer l\'action';
 
   @override
-  String get confirmTooltip =>
-      'Êtes-vous sûr de vous ? Cette action ne peut pas être annulée.';
+  String get confirmTooltip => 'Êtes-vous sûr de vous ? Cette action ne peut pas être annulée.';
 
   @override
   String get contributors => 'Adhérents';
@@ -595,8 +592,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get errorExpired => 'Carte expirée';
 
   @override
-  String get errorNegative =>
-      'Ne peut être négatif ! Veuillez corriger l\'erreur';
+  String get errorNegative => 'Ne peut être négatif ! Veuillez corriger l\'erreur';
 
   @override
   String get example => 'Exemple';
@@ -654,8 +650,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get goalTooltip => 'Objectifs ouverts';
 
   @override
-  String get hasEncrypted =>
-      'Une fois définis, ils ne peuvent pas être modifiés';
+  String get hasEncrypted => 'Une fois définis, ils ne peuvent pas être modifiés';
 
   @override
   String get helpTooltip => '[Aide] Afficher la description de cette page';
@@ -735,8 +730,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get milestones => 'Jalons';
 
   @override
-  String get missingContent =>
-      'Le fichier ne peut pas être traité (soit annulé)';
+  String get missingContent => 'Le fichier ne peut pas être traité (soit annulé)';
 
   @override
   String get navigationTooltip => 'Ouvrir le menu principal';
@@ -747,8 +741,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get noChartData =>
-      'Données manquantes (ou insuffisantes) pour être affichées';
+  String get noChartData => 'Données manquantes (ou insuffisantes) pour être affichées';
 
   @override
   String get notifyHeadline => 'Analyseur de notifications';
@@ -994,8 +987,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get total => 'total';
 
   @override
-  String get transactionFile =>
-      'Fichier journal des transactions Fingrom (.log)';
+  String get transactionFile => 'Fichier journal des transactions Fingrom (.log)';
 
   @override
   String get transferHeadline => 'Transfert';

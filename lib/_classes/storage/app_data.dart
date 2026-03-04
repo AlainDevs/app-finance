@@ -7,9 +7,11 @@ export 'package:app_finance/_classes/storage/app_data_type.dart';
 
 import 'dart:collection';
 import 'package:app_finance/_classes/controller/iterator_controller.dart';
+import 'package:app_finance/_classes/math/bill_recalculation.dart';
 import 'package:app_finance/_classes/herald/app_start_of_month.dart';
 import 'package:app_finance/_classes/herald/app_sync.dart';
 import 'package:app_finance/_classes/math/budget_prediction.dart';
+import 'package:app_finance/_classes/math/invoice_recalculation.dart';
 import 'package:app_finance/_classes/storage/history_data.dart';
 import 'package:app_finance/_classes/storage/app_data_store.dart';
 import 'package:app_finance/_classes/storage/di/app_data_dependencies.dart';
@@ -169,28 +171,52 @@ class AppData extends ChangeNotifier implements AppDataStore, AppDataExchangeSto
 
   void _updateInvoice(InvoiceAppData? initial, InvoiceAppData change) {
     _set(AppDataType.invoice, change);
-    AccountAppData? currAccount = getByUuid(change.account, false);
-    AccountAppData? prevAccount;
-    if (initial != null) {
-      prevAccount = getByUuid(initial.account, false);
-      if (prevAccount != null) {
-        _data[AppDataType.accounts]?.add(initial.account);
-      }
+    final currAccount = getByUuid(change.account, false);
+    final prevAccount = _resolvePreviousInvoiceAccount(initial);
+    if (currAccount == null) {
+      _updateTotalsIfActive([AppDataType.accounts]);
+      return;
     }
-    if (currAccount != null) {
-      final rec = _dependencies.collaboratorsFactory.createInvoiceRecalculation(change, initial)
-        ..exchange = _dependencies.collaboratorsFactory.createExchange(this);
-      rec.updateAccount(currAccount, prevAccount);
-      _data[AppDataType.accounts]?.add(change.account);
-      if (change.accountFrom != null) {
-        rec.updateAccount(getByUuid(change.accountFrom!, false),
-            initial != null && initial.accountFrom != null ? getByUuid(initial.accountFrom!, false) : null, true);
-        _data[AppDataType.accounts]?.add(change.accountFrom!);
-      }
+
+    final rec = _dependencies.collaboratorsFactory.createInvoiceRecalculation(
+      change,
+      initial,
+    )..exchange = _dependencies.collaboratorsFactory.createExchange(this);
+    rec.updateAccount(currAccount, prevAccount);
+    _data[AppDataType.accounts]?.add(change.account);
+    _updateInvoiceSourceAccount(rec, change, initial);
+
+    _updateTotalsIfActive([AppDataType.accounts]);
+  }
+
+  AccountAppData? _resolvePreviousInvoiceAccount(InvoiceAppData? initial) {
+    if (initial == null) {
+      return null;
     }
-    if (!isLoading) {
-      updateTotals([AppDataType.accounts]).then(_notify);
+
+    final prevAccount = getByUuid(initial.account, false);
+    if (prevAccount != null) {
+      _data[AppDataType.accounts]?.add(initial.account);
     }
+
+    return prevAccount;
+  }
+
+  void _updateInvoiceSourceAccount(
+    InvoiceRecalculation rec,
+    InvoiceAppData change,
+    InvoiceAppData? initial,
+  ) {
+    if (change.accountFrom == null) {
+      return;
+    }
+
+    rec.updateAccount(
+      getByUuid(change.accountFrom!, false),
+      initial != null && initial.accountFrom != null ? getByUuid(initial.accountFrom!, false) : null,
+      true,
+    );
+    _data[AppDataType.accounts]?.add(change.accountFrom!);
   }
 
   void _updateAccount(AccountAppData? initial, AccountAppData change) {
@@ -201,38 +227,89 @@ class AppData extends ChangeNotifier implements AppDataStore, AppDataExchangeSto
   }
 
   void _updateBill(BillAppData? initial, BillAppData change) {
-    AccountAppData? currAccount = getByUuid(change.account, false);
-    AccountAppData? prevAccount;
-    BudgetAppData? currBudget = getByUuid(change.category, false);
-    BudgetAppData? prevBudget;
+    final currAccount = getByUuid(change.account, false);
+    final currBudget = getByUuid(change.category, false);
     final exchange = _dependencies.collaboratorsFactory.createExchange(this);
     change.exchangeAccount = exchange.reform(1.0, change.currency, currAccount?.currency);
     change.exchangeCategory = exchange.reform(1.0, change.currency, currBudget?.currency);
-    if (initial != null) {
-      prevAccount = getByUuid(initial.account, false);
-      if (prevAccount != null) {
-        _data[AppDataType.accounts]?.add(initial.account);
-      }
-      prevBudget = getByUuid(initial.category, false);
-      if (prevBudget != null) {
-        _data[AppDataType.budgets]?.add(initial.category);
-      }
-    }
+
+    final prevAccount = _resolvePreviousBillAccount(initial);
+    final prevBudget = _resolvePreviousBillBudget(initial);
+
     prediction.add(change);
     final rec = _dependencies.collaboratorsFactory.createBillRecalculation(change: change, initial: initial)
       ..exchange = exchange;
-    if (currAccount != null) {
-      rec.updateAccount(currAccount, prevAccount);
-      _data[AppDataType.accounts]?.add(change.account);
-    }
-    if (currBudget != null) {
-      rec.updateBudget(currBudget, prevBudget);
-      _data[AppDataType.budgets]?.add(change.category);
-    }
+    _updateBillAccount(rec, currAccount, prevAccount, change.account);
+    _updateBillBudget(rec, currBudget, prevBudget, change.category);
+
     _set(AppDataType.bills, change);
-    if (!isLoading) {
-      updateTotals([AppDataType.bills, AppDataType.accounts, AppDataType.budgets]).then(_notify);
+    _updateTotalsIfActive([
+      AppDataType.bills,
+      AppDataType.accounts,
+      AppDataType.budgets,
+    ]);
+  }
+
+  AccountAppData? _resolvePreviousBillAccount(BillAppData? initial) {
+    if (initial == null) {
+      return null;
     }
+
+    final prevAccount = getByUuid(initial.account, false);
+    if (prevAccount != null) {
+      _data[AppDataType.accounts]?.add(initial.account);
+    }
+
+    return prevAccount;
+  }
+
+  BudgetAppData? _resolvePreviousBillBudget(BillAppData? initial) {
+    if (initial == null) {
+      return null;
+    }
+
+    final prevBudget = getByUuid(initial.category, false);
+    if (prevBudget != null) {
+      _data[AppDataType.budgets]?.add(initial.category);
+    }
+
+    return prevBudget;
+  }
+
+  void _updateBillAccount(
+    BillRecalculation rec,
+    AccountAppData? currAccount,
+    AccountAppData? prevAccount,
+    String account,
+  ) {
+    if (currAccount == null) {
+      return;
+    }
+
+    rec.updateAccount(currAccount, prevAccount);
+    _data[AppDataType.accounts]?.add(account);
+  }
+
+  void _updateBillBudget(
+    BillRecalculation rec,
+    BudgetAppData? currBudget,
+    BudgetAppData? prevBudget,
+    String category,
+  ) {
+    if (currBudget == null) {
+      return;
+    }
+
+    rec.updateBudget(currBudget, prevBudget);
+    _data[AppDataType.budgets]?.add(category);
+  }
+
+  void _updateTotalsIfActive(List<AppDataType> scope) {
+    if (isLoading) {
+      return;
+    }
+
+    updateTotals(scope).then(_notify);
   }
 
   void _updateBudget(BudgetAppData? initial, BudgetAppData change) {
