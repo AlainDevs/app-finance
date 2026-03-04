@@ -37,7 +37,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-02-28 23:31:41</td>
+            <td class="headerValue">2026-03-04 01:24:27</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">-</td>
@@ -70,25 +70,25 @@
 <span id="L8"><span class="lineNum">       8</span>              :   BudgetAppData change;</span>
 <span id="L9"><span class="lineNum">       9</span>              :   BudgetAppData? initial;</span>
 <span id="L10"><span class="lineNum">      10</span>              : </span>
-<span id="L11"><span class="lineNum">      11</span> <span class="tlaGNC tlaBgGNC">           1 :   BudgetRecalculation({</span></span>
+<span id="L11"><span class="lineNum">      11</span> <span class="tlaGNC tlaBgGNC">           2 :   BudgetRecalculation({</span></span>
 <span id="L12"><span class="lineNum">      12</span>              :     required this.change,</span>
 <span id="L13"><span class="lineNum">      13</span>              :     this.initial,</span>
 <span id="L14"><span class="lineNum">      14</span>              :   });</span>
 <span id="L15"><span class="lineNum">      15</span>              : </span>
-<span id="L16"><span class="lineNum">      16</span> <span class="tlaGNC">           1 :   @override</span></span>
+<span id="L16"><span class="lineNum">      16</span> <span class="tlaGNC">           2 :   @override</span></span>
 <span id="L17"><span class="lineNum">      17</span>              :   double getDelta() {</span>
-<span id="L18"><span class="lineNum">      18</span> <span class="tlaGNC">           6 :     if (initial?.amountLimit == 0 &amp;&amp; change.amountLimit &gt; 0) {</span></span>
+<span id="L18"><span class="lineNum">      18</span> <span class="tlaGNC">           8 :     if (initial?.amountLimit == 0 &amp;&amp; change.amountLimit &gt; 0) {</span></span>
 <span id="L19"><span class="lineNum">      19</span> <span class="tlaGNC">           5 :       return (initial?.amount ?? 0.0) / change.amountLimit;</span></span>
-<span id="L20"><span class="lineNum">      20</span> <span class="tlaGNC">           8 :     } else if (!change.hidden &amp;&amp; initial?.hidden == false &amp;&amp; change.amountLimit &gt; 0) {</span></span>
+<span id="L20"><span class="lineNum">      20</span> <span class="tlaGNC">          12 :     } else if (!change.hidden &amp;&amp; initial?.hidden == false &amp;&amp; change.amountLimit &gt; 0) {</span></span>
 <span id="L21"><span class="lineNum">      21</span> <span class="tlaGNC">           8 :       return initial!.amountLimit * initial!.progress / change.amountLimit;</span></span>
 <span id="L22"><span class="lineNum">      22</span>              :     } else {</span>
 <span id="L23"><span class="lineNum">      23</span>              :       return 0.0;</span>
 <span id="L24"><span class="lineNum">      24</span>              :     }</span>
 <span id="L25"><span class="lineNum">      25</span>              :   }</span>
 <span id="L26"><span class="lineNum">      26</span>              : </span>
-<span id="L27"><span class="lineNum">      27</span> <span class="tlaGNC">           1 :   BudgetRecalculation updateBudget() {</span></span>
-<span id="L28"><span class="lineNum">      28</span> <span class="tlaGNC">           3 :     change.progress = getDelta();</span></span>
-<span id="L29"><span class="lineNum">      29</span> <span class="tlaGNC">           4 :     change.amount = initial?.amount ?? 0.0;</span></span>
+<span id="L27"><span class="lineNum">      27</span> <span class="tlaGNC">           2 :   BudgetRecalculation updateBudget() {</span></span>
+<span id="L28"><span class="lineNum">      28</span> <span class="tlaGNC">           6 :     change.progress = getDelta();</span></span>
+<span id="L29"><span class="lineNum">      29</span> <span class="tlaGNC">           7 :     change.amount = initial?.amount ?? 0.0;</span></span>
 <span id="L30"><span class="lineNum">      30</span>              :     return this;</span>
 <span id="L31"><span class="lineNum">      31</span>              :   }</span>
 <span id="L32"><span class="lineNum">      32</span>              : }</span>

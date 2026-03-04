@@ -37,7 +37,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-02-28 23:31:41</td>
+            <td class="headerValue">2026-03-04 01:24:27</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">-</td>
@@ -85,7 +85,7 @@
 <span id="L23"><span class="lineNum">      23</span>              :   static const String prefWeekStartDay = 'weekStartDay';</span>
 <span id="L24"><span class="lineNum">      24</span>              :   static const String prefMonthStartDay = 'monthStartDay';</span>
 <span id="L25"><span class="lineNum">      25</span>              : </span>
-<span id="L26"><span class="lineNum">      26</span> <span class="tlaGNC tlaBgGNC">           6 :   static late SharedPreferences pref;</span></span>
+<span id="L26"><span class="lineNum">      26</span> <span class="tlaGNC tlaBgGNC">           8 :   static late SharedPreferences pref;</span></span>
 <span id="L27"><span class="lineNum">      27</span>              : </span>
 <span id="L28"><span class="lineNum">      28</span> <span class="tlaGNC">           2 :   static Future&lt;void&gt; set(String key, String value) async {</span></span>
 <span id="L29"><span class="lineNum">      29</span> <span class="tlaGNC">           4 :     await pref.setString(key, value);</span></span>
@@ -95,8 +95,8 @@
 <span id="L33"><span class="lineNum">      33</span> <span class="tlaUNC">           0 :     await pref.remove(key);</span></span>
 <span id="L34"><span class="lineNum">      34</span>              :   }</span>
 <span id="L35"><span class="lineNum">      35</span>              : </span>
-<span id="L36"><span class="lineNum">      36</span> <span class="tlaGNC tlaBgGNC">           6 :   static String? get(String key) {</span></span>
-<span id="L37"><span class="lineNum">      37</span> <span class="tlaGNC">          11 :     return pref.getString(key);</span></span>
+<span id="L36"><span class="lineNum">      36</span> <span class="tlaGNC tlaBgGNC">           8 :   static String? get(String key) {</span></span>
+<span id="L37"><span class="lineNum">      37</span> <span class="tlaGNC">          15 :     return pref.getString(key);</span></span>
 <span id="L38"><span class="lineNum">      38</span>              :   }</span>
 <span id="L39"><span class="lineNum">      39</span>              : }</span>
         </pre>

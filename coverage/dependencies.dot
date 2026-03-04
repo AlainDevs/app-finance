@@ -70,7 +70,7 @@ digraph G {
   }
   {
     rank = same; "_classes";
-    controller [label="<0>CONTROLLER|<focus_controller>focus_controller|<exchange_controller>exchange_controller|<fallback_localization_delegate>fallback_localization_delegate|<delayed_call>delayed_call|<date_format_helper>date_format_helper|<iterator_controller>iterator_controller|<purchase_controller>purchase_controller|<payments_controller>payments_controller|<flow_state_machine>flow_state_machine|<encryption_handler>encryption_handler",fillcolor="silver:white", gradientangle=240, style="filled"];
+    controller [label="<0>CONTROLLER|<focus_controller>focus_controller|<exchange_controller>exchange_controller|<fallback_localization_delegate>fallback_localization_delegate|<delayed_call>delayed_call|<date_format_helper>date_format_helper|<iterator_controller>iterator_controller|<purchase_controller>purchase_controller|<secure_aes_key_provider>secure_aes_key_provider|<payments_controller>payments_controller|<flow_state_machine>flow_state_machine|<encryption_handler>encryption_handler",fillcolor="silver:white", gradientangle=240, style="filled"];
   }
   {
     rank = same; "_classes";
@@ -78,7 +78,11 @@ digraph G {
   }
   {
     rank = same; "_classes";
-    storage [label="<0>STORAGE|<file_picker>file_picker|<file_parser>file_parser|<history_data>history_data|<app_data>app_data|<app_preferences>app_preferences|<transaction_log>transaction_log",fillcolor="silver:white", gradientangle=240, style="filled"];
+    storage [label="<0>STORAGE|<app_data_store>app_data_store|<file_picker>file_picker|<file_parser>file_parser|<history_data>history_data|<app_data_type>app_data_type|<app_data>app_data|<app_preferences>app_preferences|<transaction_log>transaction_log",fillcolor="silver:white", gradientangle=240, style="filled"];
+  }
+  {
+    rank = same; "_classes";
+    storage_di [label="<0>STORAGE_DI|<app_data_dependencies>app_data_dependencies",fillcolor="silver:white", gradientangle=240, style="filled"];
   }
   {
     rank = same; "_classes";
@@ -210,7 +214,7 @@ digraph G {
   }
   {
     rank = same; "_configs";
-    _configs_ [label="<0>_CONFIGS_|<account_type>account_type|<screen_helper>screen_helper|<custom_color_scheme>custom_color_scheme|<firebase_options>firebase_options|<theme_helper>theme_helper|<automation_type>automation_type|<budget_type>budget_type|<custom_text_theme>custom_text_theme|<payment_type>payment_type|<design_type>design_type",fillcolor="silver:white", gradientangle=240, style="filled"];
+    _configs_ [label="<0>_CONFIGS_|<account_type>account_type|<screen_helper>screen_helper|<custom_color_scheme>custom_color_scheme|<firebase_options>firebase_options|<theme_helper>theme_helper|<automation_type>automation_type|<budget_type>budget_type|<test_keys>test_keys|<custom_text_theme>custom_text_theme|<payment_type>payment_type|<design_type>design_type",fillcolor="silver:white", gradientangle=240, style="filled"];
   }
   {
     rank = same; "_ext";
@@ -591,6 +595,7 @@ digraph G {
   controller -> herald [color="green"];
 
 
+
   controller -> herald [color="green"];
   controller -> storage [color="green"];
   controller -> structure [color="green"];
@@ -598,6 +603,7 @@ digraph G {
   controller -> _ext_ [color="green"];
   controller -> storage [color="green"];
   controller -> structure [color="green"];
+  controller -> controller [color="green"];
   controller -> storage [color="green"];
   storage_transaction_log -> storage [color="green"];
   storage_transaction_log -> storage_transaction_log [color="green"];
@@ -619,6 +625,9 @@ digraph G {
   storage_transaction_log -> structure [color="green"];
   storage_transaction_log -> structure_currency [color="green"];
   storage_transaction_log -> _ext_ [color="green"];
+  storage -> controller [color="green"];
+  storage -> storage [color="green"];
+  storage -> structure [color="green"];
   storage -> herald [color="green"];
   storage -> storage [color="green"];
   storage -> file [color="green"];
@@ -630,12 +639,17 @@ digraph G {
   storage -> controller [color="green"];
   storage -> structure [color="green"];
   storage -> _ext_ [color="green"];
+
+  storage_di -> math [color="green"];
+  storage_di -> storage [color="green"];
+  storage_di -> structure [color="green"];
+  storage_di -> structure_currency [color="green"];
   storage -> controller [color="green"];
-  storage -> herald [color="green"];
   storage -> math [color="green"];
+  storage -> herald [color="green"];
   storage -> storage [color="green"];
+  storage -> storage_di [color="green"];
   storage -> structure [color="green"];
-  storage -> structure_currency [color="green"];
   storage -> _ext_ [color="green"];
 
   storage -> controller [color="green"];
@@ -689,8 +703,8 @@ digraph G {
   math -> math [color="green"];
   math -> structure [color="green"];
   math -> structure [color="green"];
-  math -> storage [color="green"];
   math -> math [color="green"];
+  math -> storage [color="green"];
   math -> structure_currency [color="green"];
   math -> structure [color="green"];
   math -> structure_currency [color="green"];
@@ -1305,6 +1319,7 @@ digraph G {
   _configs_ -> form [color="green"];
   _configs_ -> herald [color="green"];
   _configs_ -> form [color="green"];
+
   _configs_ -> _configs_ [color="green"];
   _configs_ -> herald [color="green"];
   _configs_ -> form [color="green"];

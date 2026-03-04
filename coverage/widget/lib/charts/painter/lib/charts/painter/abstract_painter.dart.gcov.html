@@ -31,13 +31,13 @@
             <td class="headerValue">lcov.info</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntryLo">10.0&nbsp;%</td>
+            <td class="headerCovTableEntryLo">20.0&nbsp;%</td>
             <td class="headerCovTableEntry">10</td>
-            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">2</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-02-28 23:32:43</td>
+            <td class="headerValue">2026-03-04 01:25:37</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">-</td>
@@ -76,7 +76,7 @@
 <span id="L14"><span class="lineNum">      14</span>              : </span>
 <span id="L15"><span class="lineNum">      15</span>              :   final double msDay = 86400000;</span>
 <span id="L16"><span class="lineNum">      16</span>              : </span>
-<span id="L17"><span class="lineNum">      17</span> <span class="tlaGNC tlaBgGNC">           1 :   AbstractPainter({</span></span>
+<span id="L17"><span class="lineNum">      17</span> <span class="tlaGNC tlaBgGNC">           2 :   AbstractPainter({</span></span>
 <span id="L18"><span class="lineNum">      18</span>              :     required this.indent,</span>
 <span id="L19"><span class="lineNum">      19</span>              :     this.size,</span>
 <span id="L20"><span class="lineNum">      20</span>              :     this.xMin = 0.0,</span>
@@ -85,10 +85,10 @@
 <span id="L23"><span class="lineNum">      23</span>              :     this.yMax = 1.0,</span>
 <span id="L24"><span class="lineNum">      24</span>              :   });</span>
 <span id="L25"><span class="lineNum">      25</span>              : </span>
-<span id="L26"><span class="lineNum">      26</span> <span class="tlaUNC tlaBgUNC">           0 :   @override</span></span>
+<span id="L26"><span class="lineNum">      26</span> <span class="tlaGNC">           1 :   @override</span></span>
 <span id="L27"><span class="lineNum">      27</span>              :   bool shouldRepaint(CustomPainter oldDelegate) =&gt; false;</span>
 <span id="L28"><span class="lineNum">      28</span>              : </span>
-<span id="L29"><span class="lineNum">      29</span> <span class="tlaUNC">           0 :   Offset getValue(Offset point, Size size, [double dy = 0]) {</span></span>
+<span id="L29"><span class="lineNum">      29</span> <span class="tlaUNC tlaBgUNC">           0 :   Offset getValue(Offset point, Size size, [double dy = 0]) {</span></span>
 <span id="L30"><span class="lineNum">      30</span> <span class="tlaUNC">           0 :     double x = (point.dx - xMin) / (xMax - xMin) * size.width + indent;</span></span>
 <span id="L31"><span class="lineNum">      31</span> <span class="tlaUNC">           0 :     if (x &gt; size.width) {</span></span>
 <span id="L32"><span class="lineNum">      32</span> <span class="tlaUNC">           0 :       x = size.width + 0.01;</span></span>
