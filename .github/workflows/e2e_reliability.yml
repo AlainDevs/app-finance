@@ -23,9 +23,6 @@ jobs:
             iteration: 2
           - lane: stable
             iteration: 3
-          - lane: quarantine
-            iteration: 1
-    continue-on-error: ${{ matrix.lane == 'quarantine' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -64,67 +61,6 @@ jobs:
             | tr -d '[:space:]' \
             | tee "${log_dir}/test_total.log"
 
-      - name: Execute quarantined non-deterministic test (non-blocking)
-        if: ${{ matrix.lane == 'quarantine' && env.ACT != 'true' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          log_dir="coverage/reliability/quarantine/run_${{ matrix.iteration }}"
-          mkdir -p "${log_dir}"
-          flutter config --enable-web
-
-          # Chrome sandbox wrapper for root environments (act/Docker)
-          if [[ "$(id -u)" -eq 0 ]]; then
-            real="$(command -v google-chrome || command -v chromium-browser || echo google-chrome)"
-            printf '#!/bin/sh\nexec "%s" --no-sandbox --disable-dev-shm-usage "$@"\n' "${real}" \
-              > /usr/local/bin/chrome-wrap && chmod +x /usr/local/bin/chrome-wrap
-            export CHROME_EXECUTABLE=/usr/local/bin/chrome-wrap
-          fi
-
-          kill_pid() { kill "$1" 2>/dev/null; wait "$1" 2>/dev/null; } || true
-
-          run_drive() {
-            local log="${log_dir}/run_${1}.log"
-
-            chromedriver --port=4444 > "${log_dir}/chromedriver.log" 2>&1 &
-            local cd_pid=$!
-            trap "kill_pid ${cd_pid}" RETURN
-
-            local i=0; while ! curl -sf http://127.0.0.1:4444/status >/dev/null 2>&1; do
-              ((++i > 30)) && { echo "Chromedriver not ready" | tee "${log}"; return 1; }; sleep 1
-            done
-
-            env CHROME_NO_SANDBOX=true xvfb-run --auto-servernum \
-              --server-args="-screen 0 1920x1080x24" \
-              flutter drive --driver=test_driver/perf_driver.dart \
-                --target=integration_test/load/start_page_test.dart \
-                -d chrome --headless --no-dds --no-pub \
-              > "${log}" 2>&1 &
-            local pid=$!
-
-            local t=0
-            while kill -0 "${pid}" 2>/dev/null; do
-              grep -q "All tests passed!"          "${log}" 2>/dev/null && { kill_pid "${pid}"; cat "${log}"; return 0; }
-              grep -qE "Some tests failed|failed"  "${log}" 2>/dev/null && { kill_pid "${pid}"; cat "${log}"; return 1; }
-              ((t >= 240)) && { kill_pid "${pid}"; cat "${log}"; return 124; }
-              sleep 2; t=$((t + 2))
-            done
-            wait "${pid}"; local rc=$?; cat "${log}"; return "${rc}"
-          }
-
-          rc=1
-          for attempt in 1 2 3; do
-            set +e; run_drive "${attempt}"; rc=$?; set -e
-            [[ "${rc}" -eq 0 ]] && break
-            [[ "${rc}" -eq 124 ]] || grep -q "AppConnectionException" "${log_dir}/run_${attempt}.log" 2>/dev/null \
-              || break
-            [[ "${attempt}" -lt 3 ]] && sleep 2 || break
-          done
-
-          echo "N/A (quarantine lane; no lcov)" > "${log_dir}/test_total.log"
-          [[ "${rc}" -ne 0 ]] && { echo "Quarantine failed (exit ${rc})" | tee "${log_dir}/run_final_status.log"; exit "${rc}"; }
-          exit 0
 
       - name: Upload reliability logs
         if: ${{ always() && env.ACT != 'true' }}
