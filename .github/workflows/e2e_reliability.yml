@@ -69,3 +69,23 @@ jobs:
           name: e2e-reliability-logs-${{ matrix.lane }}-run-${{ matrix.iteration }}
           path: coverage/reliability/${{ matrix.lane }}/run_${{ matrix.iteration }}
           if-no-files-found: warn
+
+      - name: Notify via ntfy
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          if [[ "${{ job.status }}" == "success" ]]; then
+            title="E2E ${{ matrix.lane }} #${{ matrix.iteration }} passed"
+            tags="white_check_mark"
+            priority="default"
+          else
+            title="E2E ${{ matrix.lane }} #${{ matrix.iteration }} failed"
+            tags="x"
+            priority="high"
+          fi
+          curl -sf -u "${{ secrets.NTFY_USER }}:${{ secrets.NTFY_PASS }}" \
+            -H "Title: ${title}" \
+            -H "Tags: ${tags}" \
+            -H "Priority: ${priority}" \
+            -d "Job: ${{ matrix.lane }} #${{ matrix.iteration }} - ${{ job.status }}" \
+            "${{ secrets.NTFY_URL }}" || echo "ntfy notification skipped (no credentials)"
